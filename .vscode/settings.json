@@ -5,5 +5,7 @@
         "source.addMissingImports.ts": "explicit",
         "source.organizeImports": "explicit",
         "source.removeUnusedImports.ts": "explicit"
-    }
+    },
+    "deno.enable": true,
+    "deno.lint": true
 }

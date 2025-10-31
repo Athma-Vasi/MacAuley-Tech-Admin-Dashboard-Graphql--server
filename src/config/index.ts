@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
+import process from "node:process";
 
 dotenv.config();
 
-const PORT = Number(process.env['PORT']) || 1337;
+const PORT = Number(process.env["PORT"]) || 1337;
 const {
   NODE_ENV = "development",
   PROTOCOL_PREFIX = "mongodb+srv://",

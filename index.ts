@@ -2,15 +2,15 @@ import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { connectDB } from "./src/config/connectDB.ts";
 import { CONFIG } from "./src/config/index.ts";
-import { resolvers } from "./src/schema/resolvers.ts";
-import { typeDefs } from "./src/schema/typeDefs.ts";
+import { userResolvers } from "./src/resources/user/resolvers.ts";
+import { userTypeDefs } from "./src/resources/user/schema.ts";
 
 try {
     await connectDB(CONFIG);
 
     const server = new ApolloServer({
-        typeDefs,
-        resolvers,
+        typeDefs: userTypeDefs,
+        resolvers: userResolvers,
     });
 
     const { url } = await startStandaloneServer(server);
