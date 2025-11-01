@@ -10,7 +10,6 @@ import type {
   ArrayOperators,
   FieldOperators,
   Prettify,
-  QueryObjectParsedWithDefaults,
   RecordDB,
   SafeResult,
 } from "../types.ts";
@@ -35,13 +34,13 @@ async function getResourceByIdService<
 async function getResourceByFieldService<
   Doc extends Record<string, unknown> = RecordDB,
 >({
-  filter,
   model,
+  filter,
   projection,
   options,
 }: {
-  filter: FilterQuery<Doc>;
   model: Model<Doc>;
+  filter: FilterQuery<Doc>;
   projection?: Record<string, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc>> {
@@ -80,8 +79,11 @@ async function getQueriedResourcesService<
   model,
   options,
   projection,
-}: QueryObjectParsedWithDefaults & {
+}: {
   model: Model<Doc>;
+  filter: FilterQuery<Doc>;
+  projection?: Record<string, unknown>;
+  options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc[]>> {
   try {
     const resources = await model.find(filter, projection, options)
@@ -125,8 +127,11 @@ async function getQueriedResourcesByUserService<
   model,
   options,
   projection,
-}: QueryObjectParsedWithDefaults & {
+}: {
   model: Model<Doc>;
+  filter: FilterQuery<Doc>;
+  projection?: Record<string, unknown>;
+  options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc[]>> {
   try {
     const resources = await model.find(filter, projection, options)

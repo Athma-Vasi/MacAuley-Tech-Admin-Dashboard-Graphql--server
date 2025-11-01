@@ -1,11 +1,9 @@
 import mongoose from "mongoose";
-
 import type { Config } from "./index.ts";
 
-async function connectDB(config: Config) {
-  const { MONGO_URI } = config;
+async function connectDB(mongoURI: Config["MONGO_URI"]) {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(mongoURI);
   } catch (error) {
     console.error(error);
   }

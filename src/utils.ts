@@ -1,24 +1,28 @@
-import { Err, None, Ok, Option, Some } from "ts-results";
+import type { GraphQLResolveInfo } from "graphql";
+import { type ErrImpl, type OkImpl, type Option } from "ts-results";
+import { PROPERTY_DESCRIPTOR } from "./constants.ts";
 import type { SafeError } from "./types.ts";
+import tsresults from "ts-results";
+const { Err, None, Ok, Some } = tsresults;
 
 function createSafeSuccessResult<Data = unknown>(
     data: Data,
-): Ok<Option<NonNullable<Data>>> {
-    return new Ok(data == null ? None : Some(data));
+): OkImpl<Option<NonNullable<Data>>> {
+    return new Ok(data == null || data == undefined ? None : Some(data));
 }
 
-function serializeSafe(data: unknown): string {
+function serializeSafe(data: unknown): Option<string> {
     try {
-        const serializedData = JSON.stringify(data, null, 2);
-        return serializedData;
-    } catch (error: unknown) {
-        return "Unserializable data";
+        const serialized = JSON.stringify(data, null, 2);
+        return Some(serialized);
+    } catch (_error: unknown) {
+        return None;
     }
 }
 
 function createSafeErrorResult(
     error: unknown,
-): Err<SafeError> {
+): ErrImpl<SafeError> {
     if (error instanceof Error) {
         return new Err({
             name: error.name ?? "Error",
@@ -41,17 +45,17 @@ function createSafeErrorResult(
         if (error instanceof PromiseRejectionEvent) {
             return new Err({
                 name: `PromiseRejectionEvent: ${error.type}`,
-                message: error.reason.toString() ?? "",
+                message: error.reason.toString() ?? "No reason provided",
                 stack: None,
-                original: Some(serializeSafe(error)),
+                original: serializeSafe(error),
             });
         }
 
         return new Err({
             name: `EventError: ${error.type}`,
-            message: error.timeStamp.toString() ?? "",
+            message: error.timeStamp.toString() ?? "No timestamp provided",
             stack: None,
-            original: Some(serializeSafe(error)),
+            original: serializeSafe(error),
         });
     }
 
@@ -59,8 +63,31 @@ function createSafeErrorResult(
         name: "SimulationDysfunction",
         message: "You've seen it before. Déjà vu. Something's off...",
         stack: None,
-        original: Some(serializeSafe(error)),
+        original: serializeSafe(error),
     });
 }
 
-export { createSafeErrorResult, createSafeSuccessResult };
+function getProjectionFromInfo(
+    info: GraphQLResolveInfo,
+): Record<string, 0 | 1> {
+    const { fieldNodes } = info;
+    const selections = fieldNodes[0]?.selectionSet?.selections ?? [];
+
+    return selections.reduce((projection, selection) => {
+        if (selection.kind === "Field") {
+            const fieldName = selection.name.value;
+            Object.defineProperty(projection, fieldName, {
+                value: 1,
+                ...PROPERTY_DESCRIPTOR,
+            });
+        }
+
+        return projection;
+    }, {});
+}
+
+export {
+    createSafeErrorResult,
+    createSafeSuccessResult,
+    getProjectionFromInfo,
+};
