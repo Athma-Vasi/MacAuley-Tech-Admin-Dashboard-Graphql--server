@@ -1,6 +1,12 @@
+import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR } from "./constants.ts";
+import {
+    ErrorLogModel,
+    type ErrorLogSchema,
+} from "./resources/errorLog/model.ts";
+import { createNewResourceService } from "./services/index.ts";
 import type { SafeError } from "./types.ts";
 const { Err, None, Ok, Some } = tsresults;
 
@@ -10,12 +16,12 @@ function createSafeSuccessResult<Data = unknown>(
     return new Ok(data == null || data == undefined ? None : Some(data));
 }
 
-function serializeSafe(data: unknown): Option<string> {
+function serializeSafe(data: unknown): string {
     try {
-        const serialized = JSON.stringify(data, null, 2);
-        return Some(serialized);
+        const serializedData = JSON.stringify(data, null, 2);
+        return serializedData;
     } catch (_error: unknown) {
-        return None;
+        return "Unserializable data";
     }
 }
 
@@ -46,7 +52,7 @@ function createSafeErrorResult(
                 name: `PromiseRejectionEvent: ${error.type}`,
                 message: error.reason.toString() ?? "No reason provided",
                 stack: None,
-                original: serializeSafe(error),
+                original: Some(serializeSafe(error)),
             });
         }
 
@@ -54,7 +60,7 @@ function createSafeErrorResult(
             name: `EventError: ${error.type}`,
             message: error.timeStamp.toString() ?? "No timestamp provided",
             stack: None,
-            original: serializeSafe(error),
+            original: Some(serializeSafe(error)),
         });
     }
 
@@ -62,7 +68,7 @@ function createSafeErrorResult(
         name: "SimulationDysfunction",
         message: "You've seen it before. Déjà vu. Something's off...",
         stack: None,
-        original: serializeSafe(error),
+        original: Some(serializeSafe(error)),
     });
 }
 
@@ -115,9 +121,115 @@ function splitResourceIDFromArgs<
         );
 }
 
+function createErrorLogSchema(
+    safeErrorResult: ErrImpl<SafeError>,
+    request: Request,
+): ErrorLogSchema {
+    const { message, name, original, stack } = safeErrorResult.val;
+    const { body = {} } = request;
+    const { username = "unknown", userId = "unknown", sessionId = "unknown" } =
+        body;
+    const { headers, ip, method, path } = request;
+
+    const errorLog: ErrorLogSchema = {
+        message: message,
+        name: name,
+        stack: stack.none ? "ｶ ｷ ｸ ｹ ｺ ｻ ｼ ｽ" : stack.val,
+        original: original.none ? "ｾ ｿ ﾀ ﾁ ﾂ ﾃ ﾄ ﾅ" : original.val,
+        body: serializeSafe(body),
+        sessionId: sessionId.toString(),
+        userId: userId.toString(),
+        username: username,
+    };
+
+    if (headers) {
+        Object.defineProperty(errorLog, "headers", {
+            value: serializeSafe(headers),
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (ip) {
+        Object.defineProperty(errorLog, "ip", {
+            value: ip,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (method) {
+        Object.defineProperty(errorLog, "method", {
+            value: method,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (path) {
+        Object.defineProperty(errorLog, "path", {
+            value: path,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (request.headers["user-agent"]) {
+        Object.defineProperty(errorLog, "userAgent", {
+            value: request.headers["user-agent"],
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+
+    return errorLog;
+}
+
+async function handleCatchBlockError(
+    error: unknown,
+    request: Request,
+): Promise<null> {
+    try {
+        console.error("handling catch block error: ", error);
+
+        const safeErrorResult = createSafeErrorResult(error);
+        const errorLogSchema = createErrorLogSchema(
+            safeErrorResult,
+            request,
+        );
+        await createNewResourceService(
+            errorLogSchema,
+            ErrorLogModel,
+        );
+
+        return null;
+    } catch (_error: unknown) {
+        return null;
+    }
+}
+
+async function handleErrorResult(
+    safeErrorResult: ErrImpl<SafeError>,
+    request: Request,
+): Promise<null> {
+    try {
+        console.error(
+            "handling error result: ",
+            safeErrorResult.mapErr((e) => e),
+        );
+
+        const errorLogSchema = createErrorLogSchema(
+            safeErrorResult,
+            request,
+        );
+        await createNewResourceService(
+            errorLogSchema,
+            ErrorLogModel,
+        );
+
+        return null;
+    } catch (_error: unknown) {
+        return null;
+    }
+}
+
 export {
+    createErrorLogSchema,
     createSafeErrorResult,
     createSafeSuccessResult,
     getProjectionFromInfo,
+    handleCatchBlockError,
+    handleErrorResult,
     splitResourceIDFromArgs,
 };

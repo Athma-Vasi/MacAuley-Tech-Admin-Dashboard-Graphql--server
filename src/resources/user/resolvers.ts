@@ -1,12 +1,17 @@
+import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
-import { PROPERTY_DESCRIPTOR } from "../../constants.ts";
 import {
     createNewResourceService,
     deleteResourceByIdService,
     getResourceByFieldService,
     updateResourceByIdService,
 } from "../../services/index.ts";
-import { getProjectionFromInfo } from "../../utils.ts";
+import {
+    getProjectionFromInfo,
+    handleCatchBlockError,
+    handleErrorResult,
+    splitResourceIDFromArgs,
+} from "../../utils.ts";
 import { UserModel, type UserSchema } from "./model.ts";
 
 const userResolvers = {
@@ -14,7 +19,7 @@ const userResolvers = {
         getUserByID: async (
             _parent: unknown,
             args: Record<string, unknown>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -38,31 +43,32 @@ const userResolvers = {
                     projection,
                 });
                 if (userResult.err) {
-                    console.error(
-                        "Error fetching user by ID:",
-                        userResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        userResult,
+                        context.req,
                     );
-                    return;
                 }
 
                 const userMaybe = userResult.safeUnwrap();
                 if (userMaybe.none) {
                     console.warn("User not found with provided ID.");
-                    return;
+                    return null;
                 }
                 const user = userMaybe.safeUnwrap();
 
                 return user;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         getUserByUsername: async (
             _parent: unknown,
             args: Record<string, unknown>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -86,31 +92,32 @@ const userResolvers = {
                     projection,
                 });
                 if (userResult.err) {
-                    console.error(
-                        "Error fetching user:",
-                        userResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        userResult,
+                        context.req,
                     );
-                    return;
                 }
 
                 const userMaybe = userResult.safeUnwrap();
                 if (userMaybe.none) {
                     console.warn("User not found with provided username.");
-                    return;
+                    return null;
                 }
                 const user = userMaybe.safeUnwrap();
 
                 return user;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         getUsers: async (
             _parent: unknown,
             args: Record<string, unknown>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -129,24 +136,25 @@ const userResolvers = {
                     projection,
                 });
                 if (usersResult.err) {
-                    console.error(
-                        "Error fetching users:",
-                        usersResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        usersResult,
+                        context.req,
                     );
-                    return [];
                 }
 
                 const usersMaybe = usersResult.safeUnwrap();
                 if (usersMaybe.none) {
                     console.warn("No users found.");
-                    return [];
+                    return null;
                 }
                 const users = usersMaybe.safeUnwrap();
 
                 return users;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return [];
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
     },
@@ -155,7 +163,7 @@ const userResolvers = {
         createUser: async (
             _parent: unknown,
             args: Partial<UserSchema>,
-            context: unknown,
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -168,11 +176,10 @@ const userResolvers = {
                     UserModel,
                 );
                 if (newUserResult.err) {
-                    console.error(
-                        "Error creating user:",
-                        newUserResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        newUserResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const newUserMaybe = newUserResult.safeUnwrap();
@@ -184,15 +191,17 @@ const userResolvers = {
 
                 return newUser;
             } catch (error: unknown) {
-                console.error("Error creating user:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         deleteUser: async (
             _parent: unknown,
-            args: { id: string },
-            context: unknown,
+            args: { _id: string },
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -200,36 +209,36 @@ const userResolvers = {
                 console.log(_parent, args, context);
                 console.groupEnd();
 
-                const userId = args["id"];
                 const deleteResult = await deleteResourceByIdService(
-                    userId,
+                    args["_id"],
                     UserModel,
                 );
                 if (deleteResult.err) {
-                    console.error(
-                        "Error deleting user:",
-                        deleteResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        deleteResult,
+                        context.req,
                     );
-                    return false;
                 }
 
                 const deleteMaybe = deleteResult.safeUnwrap();
                 if (deleteMaybe.none) {
                     console.error("Failed to delete user.");
-                    return false;
+                    return null;
                 }
 
                 return deleteMaybe.safeUnwrap();
             } catch (error: unknown) {
-                console.error("Error deleting user:", error);
-                return false;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         updateUser: async (
             _parent: unknown,
-            args: { _id: string } & Partial<Omit<UserSchema, "_id">>,
-            context: unknown,
+            args: { _id: string } & Partial<UserSchema>,
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -237,42 +246,21 @@ const userResolvers = {
                 console.log(_parent, args, context);
                 console.groupEnd();
 
-                const { resourceId, updateFields } = Object.entries(args)
-                    .reduce(
-                        (acc, [key, value]) => {
-                            if (key === "_id") {
-                                Object.defineProperty(acc, "resourceId", {
-                                    value: value,
-                                    ...PROPERTY_DESCRIPTOR,
-                                });
-                                return acc;
-                            }
-
-                            Object.defineProperty(acc.updateFields, key, {
-                                value: value,
-                                ...PROPERTY_DESCRIPTOR,
-                            });
-
-                            return acc;
-                        },
-                        {
-                            resourceId: "",
-                            updateFields: {} as Record<string, unknown>,
-                        },
-                    );
+                const { resourceId, updateFields } = splitResourceIDFromArgs(
+                    args,
+                );
 
                 const updateResult = await updateResourceByIdService({
                     resourceId,
-                    fields: updateFields,
+                    updateFields,
                     model: UserModel,
                     updateOperator: "$set",
                 });
                 if (updateResult.err) {
-                    console.error(
-                        "Error updating user:",
-                        updateResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        updateResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const updatedUserMaybe = updateResult.safeUnwrap();
@@ -284,8 +272,10 @@ const userResolvers = {
 
                 return updatedUser;
             } catch (error: unknown) {
-                console.error("Error updating user:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
     },

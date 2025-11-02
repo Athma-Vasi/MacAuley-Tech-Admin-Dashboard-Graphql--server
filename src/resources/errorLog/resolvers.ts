@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
 import {
     createNewResourceService,
@@ -6,7 +7,12 @@ import {
     getResourceByFieldService,
     updateResourceByIdService,
 } from "../../services/index.ts";
-import { getProjectionFromInfo, splitResourceIDFromArgs } from "../../utils.ts";
+import {
+    getProjectionFromInfo,
+    handleCatchBlockError,
+    handleErrorResult,
+    splitResourceIDFromArgs,
+} from "../../utils.ts";
 import { ErrorLogModel, type ErrorLogSchema } from "./model.ts";
 
 const errorLogResolvers = {
@@ -14,7 +20,7 @@ const errorLogResolvers = {
         getErrorLogs: async (
             _parent: unknown,
             args: Record<string, unknown>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -38,11 +44,10 @@ const errorLogResolvers = {
                     projection,
                 });
                 if (errorLogsResult.err) {
-                    console.error(
-                        "Error fetching all error logs:",
-                        errorLogsResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        errorLogsResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const errorLogsMaybe = errorLogsResult.safeUnwrap();
@@ -54,15 +59,17 @@ const errorLogResolvers = {
 
                 return errorLogs;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         getErrorLogByID: async (
             _parent: unknown,
             args: { _id: string } & Partial<ErrorLogSchema>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -86,11 +93,10 @@ const errorLogResolvers = {
                     projection,
                 });
                 if (errorLogResult.err) {
-                    console.error(
-                        "Error fetching error log by ID:",
-                        errorLogResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        errorLogResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const errorLogMaybe = errorLogResult.safeUnwrap();
@@ -102,15 +108,17 @@ const errorLogResolvers = {
 
                 return errorLog;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         getErrorLogByField: async (
             _parent: unknown,
             args: Partial<ErrorLogSchema>,
-            context: unknown,
+            context: { req: Request },
             info: GraphQLResolveInfo,
         ) => {
             try {
@@ -134,11 +142,10 @@ const errorLogResolvers = {
                     projection,
                 });
                 if (errorLogResult.err) {
-                    console.error(
-                        "Error fetching error log by field:",
-                        errorLogResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        errorLogResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const errorLogMaybe = errorLogResult.safeUnwrap();
@@ -150,8 +157,10 @@ const errorLogResolvers = {
 
                 return errorLog;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
     },
@@ -160,7 +169,7 @@ const errorLogResolvers = {
         createErrorLog: async (
             _parent: unknown,
             args: ErrorLogSchema,
-            context: unknown,
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -177,11 +186,10 @@ const errorLogResolvers = {
                     ErrorLogModel,
                 );
                 if (errorLogResult.err) {
-                    console.error(
-                        "Error creating error log:",
-                        errorLogResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        errorLogResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const errorLogMaybe = errorLogResult.safeUnwrap();
@@ -193,15 +201,17 @@ const errorLogResolvers = {
 
                 return errorLog;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         updateErrorLog: async (
             _parent: unknown,
             args: Partial<ErrorLogSchema> & { _id: string },
-            context: unknown,
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -218,16 +228,15 @@ const errorLogResolvers = {
                 );
                 const errorLogResult = await updateResourceByIdService({
                     resourceId,
-                    fields: updateFields,
+                    updateFields,
                     model: ErrorLogModel,
                     updateOperator: "$set",
                 });
                 if (errorLogResult.err) {
-                    console.error(
-                        "Error updating error log:",
-                        errorLogResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        errorLogResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const errorLogMaybe = errorLogResult.safeUnwrap();
@@ -239,15 +248,17 @@ const errorLogResolvers = {
 
                 return errorLog;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
 
         deleteErrorLog: async (
             _parent: unknown,
             args: { _id: string },
-            context: unknown,
+            context: { req: Request },
             _info: GraphQLResolveInfo,
         ) => {
             try {
@@ -264,11 +275,10 @@ const errorLogResolvers = {
                     ErrorLogModel,
                 );
                 if (deleteResult.err) {
-                    console.error(
-                        "Error deleting error log:",
-                        deleteResult.mapErr((e) => e),
+                    return await handleErrorResult(
+                        deleteResult,
+                        context.req,
                     );
-                    return null;
                 }
 
                 const deleteMaybe = deleteResult.safeUnwrap();
@@ -280,8 +290,10 @@ const errorLogResolvers = {
 
                 return deleteSuccess;
             } catch (error: unknown) {
-                console.error("Unexpected error:", error);
-                return null;
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
             }
         },
     },

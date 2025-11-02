@@ -42,8 +42,9 @@ try {
         expressMiddleware(server, {
             // deno-lint-ignore require-await
             context: async ({ req }) => {
-                const token = req.headers.authorization || "";
-                return { token };
+                // const token = req.headers.authorization || "";
+                // return { token };
+                return req;
             },
         }),
     );

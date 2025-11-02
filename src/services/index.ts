@@ -131,18 +131,18 @@ async function updateResourceByIdService<
   Doc extends Record<string, unknown> = RecordDB,
 >({
   resourceId,
-  fields,
+  updateFields,
   updateOperator,
   model,
 }: {
   resourceId: string;
-  fields: Record<string, unknown>;
+  updateFields: Record<string, unknown>;
   model: Model<Doc>;
   updateOperator: FieldOperators | ArrayOperators;
 }): Promise<SafeResult<Doc>> {
   try {
     const updateObject = {
-      [updateOperator]: fields,
+      [updateOperator]: updateFields,
     } as Pick<
       QueryOptions<Doc>,
       MongooseBaseQueryOptionKeys
