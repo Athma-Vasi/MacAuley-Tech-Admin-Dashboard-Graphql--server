@@ -67,3 +67,5 @@ const errorLogTypeDefs = `#graphql
         deleteErrorLog(id: ID!): Boolean!
     }
 `;
+
+export { errorLogTypeDefs };

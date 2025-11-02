@@ -85,8 +85,39 @@ function getProjectionFromInfo(
     }, {});
 }
 
+function splitResourceIDFromArgs<
+    Doc extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>(
+    args: Doc,
+): { resourceId: string; updateFields: Omit<Doc, "_id"> } {
+    return Object.entries(args)
+        .reduce(
+            (acc, [key, value]) => {
+                if (key === "_id") {
+                    Object.defineProperty(acc, "resourceId", {
+                        value: value,
+                        ...PROPERTY_DESCRIPTOR,
+                    });
+                    return acc;
+                }
+
+                Object.defineProperty(acc.updateFields, key, {
+                    value: value,
+                    ...PROPERTY_DESCRIPTOR,
+                });
+
+                return acc;
+            },
+            {
+                resourceId: "",
+                updateFields: {} as Omit<Doc, "_id">,
+            },
+        );
+}
+
 export {
     createSafeErrorResult,
     createSafeSuccessResult,
     getProjectionFromInfo,
+    splitResourceIDFromArgs,
 };
