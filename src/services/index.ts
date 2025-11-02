@@ -5,7 +5,7 @@ import type {
   QueryOptions,
   RootFilterQuery,
 } from "mongoose";
-import { None, Ok } from "ts-results";
+import tsresults from "ts-results";
 import type {
   ArrayOperators,
   FieldOperators,
@@ -14,6 +14,8 @@ import type {
   SafeResult,
 } from "../types.ts";
 import { createSafeErrorResult, createSafeSuccessResult } from "../utils.ts";
+
+const { Ok, None } = tsresults;
 
 async function getResourceByIdService<
   Doc extends Record<string, unknown> = RecordDB,
@@ -47,11 +49,39 @@ async function getResourceByFieldService<
   try {
     const resourceBox = await model.find(filter, projection, options)
       .lean()
-      .exec() as Doc[];
+      .exec() as Array<Doc>;
 
-    return resourceBox.length === 0 || resourceBox[0] == null
+    return resourceBox.length === 0 || resourceBox.length > 1 ||
+        resourceBox[0] == null ||
+        resourceBox[0] == undefined
       ? new Ok(None)
       : createSafeSuccessResult(resourceBox[0]);
+  } catch (error: unknown) {
+    return createSafeErrorResult(error);
+  }
+}
+
+async function getAllResourcesService<
+  Doc extends Record<string, unknown> = RecordDB,
+>({
+  model,
+  filter,
+  projection,
+  options,
+}: {
+  model: Model<Doc>;
+  filter: FilterQuery<Doc>;
+  projection?: Record<string, unknown>;
+  options?: QueryOptions<Doc>;
+}): Promise<SafeResult<Array<Doc>>> {
+  try {
+    const resources = await model.find(filter, projection, options)
+      .lean()
+      .exec() as Array<Doc>;
+
+    return resources.length === 0
+      ? new Ok(None)
+      : createSafeSuccessResult(resources);
   } catch (error: unknown) {
     return createSafeErrorResult(error);
   }
@@ -72,30 +102,7 @@ async function createNewResourceService<
   }
 }
 
-async function getQueriedResourcesService<
-  Doc extends Record<string, unknown> = RecordDB,
->({
-  filter,
-  model,
-  options,
-  projection,
-}: {
-  model: Model<Doc>;
-  filter: FilterQuery<Doc>;
-  projection?: Record<string, unknown>;
-  options?: QueryOptions<Doc>;
-}): Promise<SafeResult<Doc[]>> {
-  try {
-    const resources = await model.find(filter, projection, options)
-      .lean()
-      .exec() as Doc[];
-    return createSafeSuccessResult(resources);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
-  }
-}
-
-async function getQueriedTotalResourcesService<
+async function getTotalResourcesService<
   Doc extends Record<string, unknown> = RecordDB,
 >(
   { filter, model, options }: {
@@ -108,36 +115,13 @@ async function getQueriedTotalResourcesService<
   },
 ): Promise<SafeResult<number>> {
   try {
-    const totalQueriedResources = await model.countDocuments(
+    const totalResources = await model.countDocuments(
       filter,
       options,
     )
       .lean()
       .exec();
-    return createSafeSuccessResult(totalQueriedResources);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
-  }
-}
-
-async function getQueriedResourcesByUserService<
-  Doc extends Record<string, unknown> = RecordDB,
->({
-  filter,
-  model,
-  options,
-  projection,
-}: {
-  model: Model<Doc>;
-  filter: FilterQuery<Doc>;
-  projection?: Record<string, unknown>;
-  options?: QueryOptions<Doc>;
-}): Promise<SafeResult<Doc[]>> {
-  try {
-    const resources = await model.find(filter, projection, options)
-      .lean()
-      .exec() as Doc[];
-    return createSafeSuccessResult(resources);
+    return createSafeSuccessResult(totalResources);
   } catch (error: unknown) {
     return createSafeErrorResult(error);
   }
@@ -240,10 +224,9 @@ export {
   createNewResourceService,
   deleteManyResourcesService,
   deleteResourceByIdService,
-  getQueriedResourcesByUserService,
-  getQueriedResourcesService,
-  getQueriedTotalResourcesService,
+  getAllResourcesService,
   getResourceByFieldService,
   getResourceByIdService,
+  getTotalResourcesService,
   updateResourceByIdService,
 };

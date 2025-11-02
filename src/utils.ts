@@ -1,8 +1,7 @@
 import type { GraphQLResolveInfo } from "graphql";
-import { type ErrImpl, type OkImpl, type Option } from "ts-results";
+import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR } from "./constants.ts";
 import type { SafeError } from "./types.ts";
-import tsresults from "ts-results";
 const { Err, None, Ok, Some } = tsresults;
 
 function createSafeSuccessResult<Data = unknown>(
@@ -69,7 +68,7 @@ function createSafeErrorResult(
 
 function getProjectionFromInfo(
     info: GraphQLResolveInfo,
-): Record<string, 0 | 1> {
+): Record<string, 1> {
     const { fieldNodes } = info;
     const selections = fieldNodes[0]?.selectionSet?.selections ?? [];
 
