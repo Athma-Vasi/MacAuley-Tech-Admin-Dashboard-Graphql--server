@@ -4,6 +4,8 @@ const HASH_SALT_ROUNDS = 10;
 
 const TRIGGER_LOGOUT_KEY = "triggerLogout";
 
+const ERROR_LOG_EXPIRY = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 days
+
 const PROPERTY_DESCRIPTOR: PropertyDescriptor = {
     configurable: false,
     enumerable: true,
@@ -53,6 +55,7 @@ const STATUS_DESCRIPTION_TABLE: Record<number, string> = {
 
 export {
     ACCESS_TOKEN_EXPIRY,
+    ERROR_LOG_EXPIRY,
     FILE_UPLOAD_EXPIRY,
     HASH_SALT_ROUNDS,
     INVALID_CREDENTIALS,
