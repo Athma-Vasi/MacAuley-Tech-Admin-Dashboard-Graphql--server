@@ -218,7 +218,7 @@ function getResourceByFieldHandler<
  * ══════════════════════════════════════════════════════════════
  */
 
-function createResourceHandler<
+function createNewResourceHandler<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -271,7 +271,7 @@ function createResourceHandler<
     };
 }
 
-function updateResourceHandler<
+function updateResourceByIdHandler<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -328,7 +328,7 @@ function updateResourceHandler<
     };
 }
 
-function deleteResourceHandler<
+function deleteResourceByIdHandler<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -381,10 +381,10 @@ function deleteResourceHandler<
 }
 
 export {
-    createResourceHandler,
-    deleteResourceHandler,
+    createNewResourceHandler,
+    deleteResourceByIdHandler,
     getAllResourcesHandler,
     getResourceByFieldHandler,
     getResourceByIdHandler,
-    updateResourceHandler,
+    updateResourceByIdHandler,
 };

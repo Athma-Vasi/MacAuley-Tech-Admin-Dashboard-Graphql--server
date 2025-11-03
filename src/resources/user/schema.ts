@@ -53,9 +53,9 @@ const userTypeDefs = `#graphql
             username: String!
         ): User!
 
-        deleteUser(id: ID!): Boolean!
+        deleteUserById(id: ID!): Boolean!
 
-        updateUser(
+        updateUserById(
             id: ID!
             addressLine: String
             city: String
