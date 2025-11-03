@@ -13,13 +13,14 @@ export const authTypeDefs = `#graphql
 
     type Query {
         getAuthSessionById(id: ID!): Auth
-        getCurrentSession: Auth
+        checkUsernameExistsAtRegister(username: String!): Boolean!
+        checkEmailExistsAtRegister(email: String!): Boolean!
     }
 
     type Mutation {
         createAuthSession(input: CreateAuthSessionInput!): Auth!
         refreshAuthSession(sessionId: ID!): Auth!
-        revokeAuthSession(sessionId: ID!): Boolean!
+        revokeAuthSession(sessionId: ID!): Boolean!        
     }
 
     input CreateAuthSessionInput {
