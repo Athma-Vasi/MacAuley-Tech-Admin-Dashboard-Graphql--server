@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { PROPERTY_DESCRIPTOR } from "../constants";
-// import type { FileExtension } from "../resources/fileUpload/model";
+import type { FileExtension } from "../resources/fileUpload/model.ts";
 import type { FileInfoObject, FileUploadObject } from "../types.ts";
 
 /**

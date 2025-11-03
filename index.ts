@@ -4,11 +4,16 @@ import { expressMiddleware } from "@as-integrations/express5";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
+import expressFileUpload from "express-fileupload";
 import helmet from "helmet";
 import morgan from "morgan";
 import http from "node:http";
 import { connectDB } from "./src/config/connectDB.ts";
 import { CONFIG } from "./src/config/index.ts";
+import { fileExtensionLimiterMiddleware } from "./src/middlewares/fileExtensionLimiter.ts";
+import { fileInfoExtractorMiddleware } from "./src/middlewares/fileInfoExtractor.ts";
+import { filesPayloadExistsMiddleware } from "./src/middlewares/filePayloadExists.ts";
+import { fileSizeLimiterMiddleware } from "./src/middlewares/fileSizeLimiter.ts";
 import { userResolvers } from "./src/resources/user/resolvers.ts";
 import { userTypeDefs } from "./src/resources/user/schema.ts";
 
@@ -31,6 +36,26 @@ try {
     });
 
     await server.start();
+
+    // register route involves file upload
+    app.use(
+        "/auth/register",
+        cors<cors.CorsRequest>(),
+        express.json(),
+        helmet(),
+        compression(),
+        expressFileUpload({ createParentPath: true }),
+        filesPayloadExistsMiddleware as express.RequestHandler,
+        fileSizeLimiterMiddleware as express.RequestHandler,
+        fileExtensionLimiterMiddleware as express.RequestHandler,
+        fileInfoExtractorMiddleware as express.RequestHandler,
+        expressMiddleware(server, {
+            // deno-lint-ignore require-await
+            context: async ({ req }) => {
+                return req;
+            },
+        }),
+    );
 
     app.use(
         "/auth",
