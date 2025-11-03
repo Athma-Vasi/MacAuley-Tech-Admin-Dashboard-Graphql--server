@@ -24,7 +24,7 @@ import {
  * ══════════════════════════════════════════════════════════════
  */
 
-function getAllResourcesHandler<
+function getAllResourcesResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -84,7 +84,7 @@ function getAllResourcesHandler<
     };
 }
 
-function getResourceByIdHandler<
+function getResourceByIdResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -152,7 +152,7 @@ function getResourceByIdHandler<
     };
 }
 
-function getResourceByFieldHandler<
+function getResourceByFieldResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -218,7 +218,7 @@ function getResourceByFieldHandler<
  * ══════════════════════════════════════════════════════════════
  */
 
-function createNewResourceHandler<
+function createNewResourceResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -271,7 +271,7 @@ function createNewResourceHandler<
     };
 }
 
-function updateResourceByIdHandler<
+function updateResourceByIdResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -328,7 +328,7 @@ function updateResourceByIdHandler<
     };
 }
 
-function deleteResourceByIdHandler<
+function deleteResourceByIdResolver<
     Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
     model: Model<Doc>,
@@ -381,10 +381,10 @@ function deleteResourceByIdHandler<
 }
 
 export {
-    createNewResourceHandler,
-    deleteResourceByIdHandler,
-    getAllResourcesHandler,
-    getResourceByFieldHandler,
-    getResourceByIdHandler,
-    updateResourceByIdHandler,
+    createNewResourceResolver,
+    deleteResourceByIdResolver,
+    getAllResourcesResolver,
+    getResourceByFieldResolver,
+    getResourceByIdResolver,
+    updateResourceByIdResolver,
 };

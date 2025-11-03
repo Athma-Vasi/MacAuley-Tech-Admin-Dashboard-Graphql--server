@@ -21,7 +21,7 @@ const errorLogTypeDefs = `#graphql
     }
 
     type Query {
-        getErrorLogs: [ErrorLog!]!
+        getAllErrorLogs: [ErrorLog!]!
         getErrorLogById(id: ID!): ErrorLog
         getErrorLogByField(field: String!, value: String!): ErrorLog
     }
@@ -45,7 +45,7 @@ const errorLogTypeDefs = `#graphql
             timestamp: String
         ): ErrorLog!
 
-        updateErrorLog(
+        updateErrorLogById(
             id: ID!
             method: String
             path: String
@@ -64,7 +64,7 @@ const errorLogTypeDefs = `#graphql
             timestamp: String
         ): ErrorLog!
 
-        deleteErrorLog(id: ID!): Boolean!
+        deleteErrorLogById(id: ID!): Boolean!
     }
 `;
 

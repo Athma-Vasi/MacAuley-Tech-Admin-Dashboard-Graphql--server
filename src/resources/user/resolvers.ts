@@ -1,24 +1,24 @@
 import {
-    createNewResourceHandler,
-    deleteResourceByIdHandler,
-    getAllResourcesHandler,
-    getResourceByFieldHandler,
-    getResourceByIdHandler,
-    updateResourceByIdHandler,
-} from "../../handlers/index.ts";
+    createNewResourceResolver,
+    deleteResourceByIdResolver,
+    getAllResourcesResolver,
+    getResourceByFieldResolver,
+    getResourceByIdResolver,
+    updateResourceByIdResolver,
+} from "../../resolvers/index.ts";
 import { UserModel } from "./model.ts";
 
 const userResolvers = {
     Query: {
-        getUserByID: getResourceByIdHandler(UserModel),
-        getUserByUsername: getResourceByFieldHandler(UserModel),
-        getUsers: getAllResourcesHandler(UserModel),
+        getUserByID: getResourceByIdResolver(UserModel),
+        getUserByUsername: getResourceByFieldResolver(UserModel),
+        getUsers: getAllResourcesResolver(UserModel),
     },
 
     Mutation: {
-        createUser: createNewResourceHandler(UserModel),
-        updateUserById: updateResourceByIdHandler(UserModel),
-        deleteUserById: deleteResourceByIdHandler(UserModel),
+        createUser: createNewResourceResolver(UserModel),
+        updateUserById: updateResourceByIdResolver(UserModel),
+        deleteUserById: deleteResourceByIdResolver(UserModel),
     },
 };
 
