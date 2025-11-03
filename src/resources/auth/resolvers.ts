@@ -30,70 +30,22 @@ const authResolvers = {
     Query: {
         getAuthSessionById: getResourceByIdResolver(AuthModel),
 
-        checkUsernameExistsAtRegister: async (
+        checkUsernameOrEmailExists: async (
             _: unknown,
-            args: { username: string },
+            args: { username?: string; email?: string },
             context: { req: Request },
         ): Promise<boolean> => {
             try {
-                const filter = args;
-                const options = {};
-                const projection = {};
-
                 console.group(
-                    "Checking if username exists at register:",
+                    "Checking if username or email exists at register:",
                     args.username,
                 );
 
                 const existingUserResult = await getResourceByFieldService({
                     model: AuthModel,
-                    filter,
-                    projection,
-                    options,
-                });
-                if (existingUserResult.err) {
-                    await handleErrorResult(
-                        existingUserResult,
-                        context.req,
-                    );
-                    return true;
-                }
-
-                const existsMaybe = existingUserResult.safeUnwrap();
-                if (existsMaybe.some) {
-                    return true;
-                }
-
-                return false;
-            } catch (error: unknown) {
-                await handleCatchBlockError(
-                    error,
-                    context.req,
-                );
-                return true;
-            }
-        },
-
-        checkEmailExistsAtRegister: async (
-            _: unknown,
-            args: { email: string },
-            context: { req: Request },
-        ): Promise<boolean> => {
-            try {
-                const filter = args;
-                const options = {};
-                const projection = {};
-
-                console.group(
-                    "Checking if email exists at register:",
-                    args.email,
-                );
-
-                const existingUserResult = await getResourceByFieldService({
-                    model: AuthModel,
-                    filter,
-                    projection,
-                    options,
+                    filter: args,
+                    projection: {},
+                    options: {},
                 });
                 if (existingUserResult.err) {
                     await handleErrorResult(
