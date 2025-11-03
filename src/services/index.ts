@@ -18,7 +18,7 @@ import { createSafeErrorResult, createSafeSuccessResult } from "../utils.ts";
 const { Ok, None } = tsresults;
 
 async function getResourceByIdService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
   resourceId: string,
   model: Prettify<Model<Doc>>,
@@ -34,7 +34,7 @@ async function getResourceByIdService<
 }
 
 async function getResourceByFieldService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >({
   model,
   filter,
@@ -43,7 +43,7 @@ async function getResourceByFieldService<
 }: {
   model: Model<Doc>;
   filter: FilterQuery<Doc>;
-  projection?: Record<string, unknown>;
+  projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc>> {
   try {
@@ -62,7 +62,7 @@ async function getResourceByFieldService<
 }
 
 async function getAllResourcesService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >({
   model,
   filter,
@@ -71,7 +71,7 @@ async function getAllResourcesService<
 }: {
   model: Model<Doc>;
   filter: FilterQuery<Doc>;
-  projection?: Record<string, unknown>;
+  projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Array<Doc>>> {
   try {
@@ -88,8 +88,8 @@ async function getAllResourcesService<
 }
 
 async function createNewResourceService<
-  Schema extends Record<string, unknown> = Record<string, unknown>,
-  Doc extends Record<string, unknown> = RecordDB,
+  Schema extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
   schema: Schema,
   model: Model<Doc>,
@@ -103,7 +103,7 @@ async function createNewResourceService<
 }
 
 async function getTotalResourcesService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
   { filter, model, options }: {
     filter: RootFilterQuery<Doc> | undefined;
@@ -128,7 +128,7 @@ async function getTotalResourcesService<
 }
 
 async function updateResourceByIdService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >({
   resourceId,
   updateFields,
@@ -136,7 +136,7 @@ async function updateResourceByIdService<
   model,
 }: {
   resourceId: string;
-  updateFields: Record<string, unknown>;
+  updateFields: Record<PropertyKey, unknown>;
   model: Model<Doc>;
   updateOperator: FieldOperators | ArrayOperators;
 }): Promise<SafeResult<Doc>> {
@@ -162,7 +162,7 @@ async function updateResourceByIdService<
 }
 
 async function deleteResourceByIdService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
   resourceId: string,
   model: Model<Doc>,
@@ -183,7 +183,7 @@ async function deleteResourceByIdService<
 }
 
 async function deleteManyResourcesService<
-  Doc extends Record<string, unknown> = RecordDB,
+  Doc extends Record<PropertyKey, unknown> = RecordDB,
 >(
   { filter, model, options }: {
     filter?: FilterQuery<Doc>;
