@@ -8,16 +8,19 @@ import {
 import { getResourceByIdResolver } from "../../resolvers/index.ts";
 import {
     createNewResourceService,
+    deleteResourceByIdService,
     getResourceByFieldService,
     updateResourceByIdService,
 } from "../../services/index.ts";
 import {
     compareHashedStringWithPlainStringSafe,
+    decodeJWTSafe,
     handleCatchBlockError,
     handleErrorResult,
     hashStringSafe,
     removeFieldFromObject,
     signJWTSafe,
+    verifyJWTSafe,
 } from "../../utils.ts";
 import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
 import { UserModel, type UserSchema } from "../user/model.ts";
@@ -375,10 +378,63 @@ const authResolvers = {
 
         logoutUser: async (
             _: unknown,
-            args: { sessionId: string },
+            args: { accessToken: string },
             context: { req: Request },
         ) => {
-            // Implementation in auth/mutations/logoutUser.ts
+            const { accessToken } = args;
+            const { ACCESS_TOKEN_SEED } = CONFIG;
+
+            // verify that the access token is valid
+            const verifyTokenResult = verifyJWTSafe({
+                seed: ACCESS_TOKEN_SEED,
+                token: accessToken,
+            });
+            if (verifyTokenResult.err) {
+                return await handleErrorResult(
+                    verifyTokenResult,
+                    context.req,
+                );
+            }
+            const verifiedTokenMaybe = verifyTokenResult.safeUnwrap();
+            if (verifiedTokenMaybe.none) {
+                return null;
+            }
+            // const verifiedToken = verifiedTokenMaybe.safeUnwrap();
+
+            // decode token
+            const decodedTokenResult = decodeJWTSafe(accessToken);
+            if (decodedTokenResult.err) {
+                return await handleErrorResult(
+                    decodedTokenResult,
+                    context.req,
+                );
+            }
+            const decodedTokenMaybe = decodedTokenResult.safeUnwrap();
+            if (decodedTokenMaybe.none) {
+                return null;
+            }
+            const decodedToken = decodedTokenMaybe.safeUnwrap();
+            const sessionId = decodedToken.sessionId.toString();
+
+            // delete auth session
+            const deleteAuthSessionResult = await deleteResourceByIdService(
+                sessionId,
+                AuthModel,
+            );
+            if (deleteAuthSessionResult.err) {
+                return await handleErrorResult(
+                    deleteAuthSessionResult,
+                    context.req,
+                );
+            }
+            const deletedAuthSessionMaybe = deleteAuthSessionResult
+                .safeUnwrap();
+            if (deletedAuthSessionMaybe.none) {
+                return null;
+            }
+
+            const isDeleted = deletedAuthSessionMaybe.safeUnwrap();
+            return isDeleted;
         },
     },
 };
