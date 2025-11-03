@@ -1,6 +1,6 @@
 const userTypeDefs = `#graphql
     type User {
-        id: ID!
+        _id: ID!
         addressLine: String!
         city: String!
         country: String!
@@ -19,8 +19,11 @@ const userTypeDefs = `#graphql
         province: String!
         roles: [String!]!
         state: String!
-        storeLocation: String!
+        storeLocation: String!        
         username: String!
+        createdAt: String!
+        updatedAt: String!
+        __v: Int!
     }
 
     type Query {

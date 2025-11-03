@@ -33,6 +33,21 @@ try {
     await server.start();
 
     app.use(
+        "/auth",
+        cors<cors.CorsRequest>(),
+        express.json(),
+        morgan("dev"),
+        helmet(),
+        compression(),
+        expressMiddleware(server, {
+            // deno-lint-ignore require-await
+            context: async ({ req }) => {
+                return req;
+            },
+        }),
+    );
+
+    app.use(
         "/graphql",
         cors<cors.CorsRequest>(),
         express.json(),

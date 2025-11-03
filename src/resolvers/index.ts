@@ -37,7 +37,7 @@ function getAllResourcesResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
         try {
@@ -63,7 +63,7 @@ function getAllResourcesResolver<
             if (resourcesResult.err) {
                 return await handleErrorResult(
                     resourcesResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -78,7 +78,7 @@ function getAllResourcesResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };
@@ -96,7 +96,7 @@ function getResourceByIdResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
         try {
@@ -118,7 +118,7 @@ function getResourceByIdResolver<
             if (resourceResult.err) {
                 return await handleErrorResult(
                     resourceResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -146,7 +146,7 @@ function getResourceByIdResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };
@@ -165,7 +165,7 @@ function getResourceByFieldResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
         try {
@@ -191,7 +191,7 @@ function getResourceByFieldResolver<
             if (resourceResult.err) {
                 return await handleErrorResult(
                     resourceResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -206,7 +206,7 @@ function getResourceByFieldResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };
@@ -231,7 +231,7 @@ function createNewResourceResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
         try {
@@ -250,7 +250,7 @@ function createNewResourceResolver<
             if (resourceResult.err) {
                 return await handleErrorResult(
                     resourceResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -265,7 +265,7 @@ function createNewResourceResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };
@@ -283,7 +283,7 @@ function updateResourceByIdResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
         try {
@@ -307,7 +307,7 @@ function updateResourceByIdResolver<
             if (resourceResult.err) {
                 return await handleErrorResult(
                     resourceResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -322,7 +322,7 @@ function updateResourceByIdResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };
@@ -340,7 +340,7 @@ function deleteResourceByIdResolver<
     >(
         _parent: unknown,
         args: Args,
-        context: { request: Request },
+        context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
         try {
@@ -359,7 +359,7 @@ function deleteResourceByIdResolver<
             if (deleteResult.err) {
                 return await handleErrorResult(
                     deleteResult,
-                    context.request,
+                    context.req,
                 );
             }
 
@@ -374,7 +374,7 @@ function deleteResourceByIdResolver<
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.request,
+                context.req,
             );
         }
     };

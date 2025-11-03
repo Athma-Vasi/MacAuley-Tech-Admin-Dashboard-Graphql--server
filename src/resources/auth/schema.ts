@@ -18,9 +18,35 @@ export const authTypeDefs = `#graphql
     }
 
     type Mutation {
-        createAuthSession(input: CreateAuthSessionInput!): Auth!
-        refreshAuthSession(sessionId: ID!): Auth!
-        revokeAuthSession(sessionId: ID!): Boolean!        
+        # createAuthSession(input: CreateAuthSessionInput!): Auth!
+        # refreshAuthSession(sessionId: ID!): Auth!
+        # revokeAuthSession(sessionId: ID!): Boolean!
+        registerUser(
+            addressLine: String!
+            city: String!
+            country: String!
+            department: String!
+            email: String!
+            expireAt: String
+            firstName: String!
+            jobPosition: String!
+            lastName: String!
+            orgId: Int!
+            parentOrgId: Int!
+            password: String!
+            postalCodeCanada: String!
+            postalCodeUS: String!
+            profilePictureUrl: String
+            province: String!
+            roles: [String!]!
+            state: String!
+            storeLocation: String!
+            username: String!
+        ): User!
+
+        loginUser(username: String!, password: String!): Auth!
+
+        logoutUser(sessionId: ID!): Boolean!
     }
 
     input CreateAuthSessionInput {
