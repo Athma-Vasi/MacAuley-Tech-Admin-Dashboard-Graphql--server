@@ -3,6 +3,7 @@ import { getResourceByIdResolver } from "../../resolvers/index.ts";
 import { getResourceByFieldService } from "../../services/index.ts";
 import { handleCatchBlockError, handleErrorResult } from "../../utils.ts";
 import { AuthModel } from "./model.ts";
+import type { UserSchema } from "../user/model.ts";
 
 const authResolvers = {
     Query: {
@@ -100,10 +101,9 @@ const authResolvers = {
     Mutation: {
         registerUser: async (
             _: unknown,
-            args: Record<string, unknown>,
+            args: UserSchema,
             context: { req: Request },
         ) => {
-            // Implementation in auth/mutations/registerUser.ts
         },
 
         loginUser: async (

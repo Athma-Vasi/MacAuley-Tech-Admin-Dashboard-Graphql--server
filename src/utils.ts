@@ -7,7 +7,10 @@ import {
     type ErrorLogSchema,
 } from "./resources/errorLog/model.ts";
 import { createNewResourceService } from "./services/index.ts";
-import type { SafeError } from "./types.ts";
+import type { DecodedToken, SafeError, SafeResult } from "./types.ts";
+import bcrypt from "bcryptjs";
+import jwt, { type SignOptions } from "jsonwebtoken";
+import type { Buffer } from "node:buffer";
 const { Err, None, Ok, Some } = tsresults;
 
 function createSafeSuccessResult<Data = unknown>(
@@ -224,12 +227,86 @@ async function handleErrorResult(
     }
 }
 
+async function compareHashedStringWithPlainStringSafe({
+    hashedString,
+    plainString,
+}: {
+    hashedString: string;
+    plainString: string;
+}): Promise<SafeResult<boolean>> {
+    try {
+        const isMatch = await bcrypt.compare(plainString, hashedString);
+        return createSafeSuccessResult(isMatch);
+    } catch (error: unknown) {
+        return createSafeErrorResult(error);
+    }
+}
+
+async function hashStringSafe({ saltRounds, stringToHash }: {
+    saltRounds: number;
+    stringToHash: string;
+}): Promise<SafeResult<string>> {
+    try {
+        const hashedString = await bcrypt.hash(stringToHash, saltRounds);
+        return createSafeSuccessResult(hashedString);
+    } catch (error: unknown) {
+        return createSafeErrorResult(error);
+    }
+}
+
+function decodeJWTSafe(
+    token: string,
+): SafeResult<DecodedToken> {
+    try {
+        const decoded = jwt.decode(token, { json: true }) as
+            | DecodedToken
+            | null;
+        return createSafeSuccessResult(decoded);
+    } catch (error: unknown) {
+        return createSafeErrorResult(error);
+    }
+}
+
+function verifyJWTSafe(
+    { seed, token }: {
+        seed: string;
+        token: string;
+    },
+): SafeResult<DecodedToken> {
+    try {
+        const decoded = jwt.verify(token, seed) as DecodedToken;
+        return createSafeSuccessResult(decoded);
+    } catch (error: unknown) {
+        return error instanceof Error && error?.name === "TokenExpiredError"
+            ? new Ok(None)
+            : createSafeErrorResult(error);
+    }
+}
+
+function signJWTSafe({ payload, secretOrPrivateKey, options }: {
+    payload: string | Buffer | object;
+    secretOrPrivateKey: jwt.Secret | jwt.PrivateKey;
+    options?: SignOptions;
+}) {
+    try {
+        const token = jwt.sign(payload, secretOrPrivateKey, options);
+        return createSafeSuccessResult(token);
+    } catch (error: unknown) {
+        return createSafeErrorResult(error);
+    }
+}
+
 export {
+    compareHashedStringWithPlainStringSafe,
     createErrorLogSchema,
     createSafeErrorResult,
     createSafeSuccessResult,
+    decodeJWTSafe,
     getProjectionFromInfo,
     handleCatchBlockError,
     handleErrorResult,
+    hashStringSafe,
+    signJWTSafe,
     splitResourceIDFromArgs,
+    verifyJWTSafe,
 };
