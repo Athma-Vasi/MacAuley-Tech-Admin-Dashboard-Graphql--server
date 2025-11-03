@@ -1,5 +1,8 @@
+import bcrypt from "bcryptjs";
 import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
+import jwt, { type SignOptions } from "jsonwebtoken";
+import type { Buffer } from "node:buffer";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR } from "./constants.ts";
 import {
@@ -8,9 +11,6 @@ import {
 } from "./resources/errorLog/model.ts";
 import { createNewResourceService } from "./services/index.ts";
 import type { DecodedToken, SafeError, SafeResult } from "./types.ts";
-import bcrypt from "bcryptjs";
-import jwt, { type SignOptions } from "jsonwebtoken";
-import type { Buffer } from "node:buffer";
 const { Err, None, Ok, Some } = tsresults;
 
 function createSafeSuccessResult<Data = unknown>(
@@ -296,6 +296,16 @@ function signJWTSafe({ payload, secretOrPrivateKey, options }: {
     }
 }
 
+function removeFieldFromObject<
+    Obj extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+>(
+    obj: Obj,
+    fieldToRemove: keyof Obj,
+): Omit<Obj, typeof fieldToRemove> {
+    const { [fieldToRemove]: _, ...rest } = obj;
+    return rest;
+}
+
 export {
     compareHashedStringWithPlainStringSafe,
     createErrorLogSchema,
@@ -306,6 +316,7 @@ export {
     handleCatchBlockError,
     handleErrorResult,
     hashStringSafe,
+    removeFieldFromObject,
     signJWTSafe,
     splitResourceIDFromArgs,
     verifyJWTSafe,

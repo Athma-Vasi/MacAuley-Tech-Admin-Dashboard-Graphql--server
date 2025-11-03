@@ -1,5 +1,10 @@
 import type { Request } from "express";
-import { HASH_SALT_ROUNDS } from "../../constants.ts";
+import { CONFIG } from "../../config/index.ts";
+import {
+    ACCESS_TOKEN_EXPIRY,
+    AUTH_SESSION_EXPIRY,
+    HASH_SALT_ROUNDS,
+} from "../../constants.ts";
 import { getResourceByIdResolver } from "../../resolvers/index.ts";
 import {
     createNewResourceService,
@@ -7,13 +12,16 @@ import {
     updateResourceByIdService,
 } from "../../services/index.ts";
 import {
+    compareHashedStringWithPlainStringSafe,
     handleCatchBlockError,
     handleErrorResult,
     hashStringSafe,
+    removeFieldFromObject,
+    signJWTSafe,
 } from "../../utils.ts";
 import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
 import { UserModel, type UserSchema } from "../user/model.ts";
-import { AuthModel } from "./model.ts";
+import { AuthModel, type AuthSchema } from "./model.ts";
 
 const authResolvers = {
     Query: {
@@ -236,7 +244,133 @@ const authResolvers = {
             args: { username: string; password: string },
             context: { req: Request },
         ) => {
-            // Implementation in auth/mutations/loginUser.ts
+            const { password, username } = args;
+            // check if user with username exists
+            const getUserResult = await getResourceByFieldService({
+                model: UserModel,
+                filter: { username },
+                projection: {},
+                options: {},
+            });
+            if (getUserResult.err) {
+                return await handleErrorResult(
+                    getUserResult,
+                    context.req,
+                );
+            }
+            const userMaybe = getUserResult.safeUnwrap();
+            if (userMaybe.none) {
+                return null;
+            }
+            const userDocument = userMaybe.safeUnwrap();
+
+            // verify password
+            const isPasswordValidResult =
+                await compareHashedStringWithPlainStringSafe({
+                    hashedString: userDocument.password,
+                    plainString: password,
+                });
+            if (isPasswordValidResult.err) {
+                return await handleErrorResult(
+                    isPasswordValidResult,
+                    context.req,
+                );
+            }
+            const isPasswordValidMaybe = isPasswordValidResult.safeUnwrap();
+            if (isPasswordValidMaybe.none) {
+                return null;
+            }
+            const isPasswordValid = isPasswordValidMaybe.safeUnwrap();
+            if (!isPasswordValid) {
+                return null;
+            }
+
+            const { ACCESS_TOKEN_SEED } = CONFIG;
+
+            // create auth session (without token yet)
+            const authSessionSchema: AuthSchema = {
+                addressIP: context.req.ip ?? "unknown",
+                currentlyActiveToken: "notAToken",
+                expireAt: new Date(AUTH_SESSION_EXPIRY), // 24 hours
+                userAgent: context.req.get("User-Agent") ?? "unknown",
+                userId: userDocument._id,
+                username: userDocument.username,
+            };
+
+            const createAuthSessionResult = await createNewResourceService(
+                authSessionSchema,
+                AuthModel,
+            );
+            if (createAuthSessionResult.err) {
+                return await handleErrorResult(
+                    createAuthSessionResult,
+                    context.req,
+                );
+            }
+            const createdAuthSessionMaybe = createAuthSessionResult
+                .safeUnwrap();
+            if (createdAuthSessionMaybe.none) {
+                return null;
+            }
+            const createdAuthSessionDocument = createdAuthSessionMaybe
+                .safeUnwrap();
+
+            // create a new access token and use the session ID to sign the new token
+            const accessTokenResult = signJWTSafe({
+                payload: {
+                    userId: userDocument._id.toString(),
+                    username: userDocument.username,
+                    roles: userDocument.roles,
+                    sessionId: createdAuthSessionDocument._id.toString(),
+                },
+                secretOrPrivateKey: ACCESS_TOKEN_SEED,
+                options: {
+                    expiresIn: ACCESS_TOKEN_EXPIRY,
+                },
+            });
+            if (accessTokenResult.err) {
+                return await handleErrorResult(
+                    accessTokenResult,
+                    context.req,
+                );
+            }
+            const accessTokenMaybe = accessTokenResult.safeUnwrap();
+            if (accessTokenMaybe.none) {
+                return null;
+            }
+            const accessToken = accessTokenMaybe.safeUnwrap();
+
+            // update the session with the new access token
+            const updateSessionResult = await updateResourceByIdService({
+                updateFields: {
+                    currentlyActiveToken: accessToken,
+                    ip: context.req.ip ?? "unknown",
+                    userAgent: context.req.headers["user-agent"] ?? "unknown",
+                },
+                model: AuthModel,
+                resourceId: createdAuthSessionDocument._id
+                    .toString(),
+                updateOperator: "$set",
+            });
+            if (updateSessionResult.err) {
+                return await handleErrorResult(
+                    updateSessionResult,
+                    context.req,
+                );
+            }
+            const updatedSessionMaybe = updateSessionResult.safeUnwrap();
+            if (updatedSessionMaybe.none) {
+                return null;
+            }
+
+            const userDocWithoutPassword = removeFieldFromObject(
+                userDocument,
+                "password",
+            );
+            return {
+                user: userDocWithoutPassword,
+                accessToken: accessToken,
+            };
         },
 
         logoutUser: async (
