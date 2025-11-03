@@ -17,8 +17,8 @@ const fileUploadTypeDefs = `#graphql
     }
 
     type Query {
-        getFileUpload(id: ID!): FileUpload
-        getFileUploads: [FileUpload!]!
+        getFileUploadById(_id: ID!): FileUpload
+        getAllFileUploads: [FileUpload!]!
     }
 
     type Mutation {
@@ -33,7 +33,7 @@ const fileUploadTypeDefs = `#graphql
             fileEncoding: String!
             expireAt: String
         ): FileUpload!
-        deleteFileUpload(id: ID!): Boolean!
+        deleteFileUploadById(id: ID!): Boolean!
     }
 `;
 
