@@ -14,8 +14,8 @@ import type { RecordDB } from "../types.ts";
 import {
     getProjectionFromInfo,
     handleCatchBlockError,
-    handleErrorResult,
     splitResourceIDFromArgs,
+    unwrapResultAndOption,
 } from "../utils.ts";
 
 /**
@@ -25,18 +25,18 @@ import {
  */
 
 function getAllResourcesResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends Record<PropertyKey, unknown> = Record<
+        Arguments extends Record<PropertyKey, unknown> = Record<
             PropertyKey,
             unknown
         >,
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
@@ -60,19 +60,10 @@ function getAllResourcesResolver<
                 options,
                 projection,
             });
-            if (resourcesResult.err) {
-                return await handleErrorResult(
-                    resourcesResult,
-                    context.req,
-                );
-            }
-
-            const resourcesMaybe = resourcesResult.safeUnwrap();
-            if (resourcesMaybe.none) {
-                console.warn("No resources found.");
-                return null;
-            }
-            const resources = resourcesMaybe.safeUnwrap();
+            const resources = await unwrapResultAndOption(
+                resourcesResult,
+                context.req,
+            );
 
             return resources;
         } catch (error: unknown) {
@@ -85,17 +76,17 @@ function getAllResourcesResolver<
 }
 
 function getResourceByIdResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends { _id: string } = {
+        Arguments extends { _id: string } = {
             _id: string;
         },
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
@@ -115,21 +106,14 @@ function getResourceByIdResolver<
                 args["_id"],
                 model,
             );
-            if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    context.req,
-                );
-            }
+            const resource = await unwrapResultAndOption(
+                resourceResult,
+                context.req,
+            );
 
-            const resourceMaybe = resourceResult.safeUnwrap();
-            if (resourceMaybe.none) {
-                console.warn("Resource not found with provided ID.");
-                return null;
-            }
-            const resource = resourceMaybe.safeUnwrap();
-
-            return Object.entries(resource).reduce(
+            // If resource is null, return null; otherwise create a new object
+            // containing only the fields specified in the GraphQL projection
+            return resource == null ? null : Object.entries(resource).reduce(
                 (partialResource, [key, value]) => {
                     if (projection[key] === 1) {
                         Object.defineProperty(partialResource, key, {
@@ -153,18 +137,18 @@ function getResourceByIdResolver<
 }
 
 function getResourceByFieldResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends Record<PropertyKey, unknown> = Record<
+        Arguments extends Record<PropertyKey, unknown> = Record<
             PropertyKey,
             unknown
         >,
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
     ) {
@@ -188,19 +172,11 @@ function getResourceByFieldResolver<
                 options,
                 projection,
             });
-            if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    context.req,
-                );
-            }
 
-            const resourceMaybe = resourceResult.safeUnwrap();
-            if (resourceMaybe.none) {
-                console.warn("Resource not found with provided field.");
-                return null;
-            }
-            const resource = resourceMaybe.safeUnwrap();
+            const resource = await unwrapResultAndOption(
+                resourceResult,
+                context.req,
+            );
 
             return resource;
         } catch (error: unknown) {
@@ -219,18 +195,18 @@ function getResourceByFieldResolver<
  */
 
 function createNewResourceResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends Record<PropertyKey, unknown> = Record<
+        Arguments extends Record<PropertyKey, unknown> = Record<
             PropertyKey,
             unknown
         >,
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
@@ -247,19 +223,11 @@ function createNewResourceResolver<
                 args,
                 model,
             );
-            if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    context.req,
-                );
-            }
 
-            const resourceMaybe = resourceResult.safeUnwrap();
-            if (resourceMaybe.none) {
-                console.error("Failed to create resource.");
-                return null;
-            }
-            const resource = resourceMaybe.safeUnwrap();
+            const resource = await unwrapResultAndOption(
+                resourceResult,
+                context.req,
+            );
 
             return resource;
         } catch (error: unknown) {
@@ -272,17 +240,17 @@ function createNewResourceResolver<
 }
 
 function updateResourceByIdResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends Partial<Record<PropertyKey, unknown>> & {
+        Arguments extends Partial<Record<PropertyKey, unknown>> & {
             _id: string;
         },
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
@@ -304,19 +272,11 @@ function updateResourceByIdResolver<
                 model,
                 updateOperator: "$set",
             });
-            if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    context.req,
-                );
-            }
 
-            const resourceMaybe = resourceResult.safeUnwrap();
-            if (resourceMaybe.none) {
-                console.error("Failed to update resource.");
-                return null;
-            }
-            const resource = resourceMaybe.safeUnwrap();
+            const resource = await unwrapResultAndOption(
+                resourceResult,
+                context.req,
+            );
 
             return resource;
         } catch (error: unknown) {
@@ -329,17 +289,17 @@ function updateResourceByIdResolver<
 }
 
 function deleteResourceByIdResolver<
-    Doc extends Record<PropertyKey, unknown> = RecordDB,
+    Resource extends Record<PropertyKey, unknown> = RecordDB,
 >(
-    model: Model<Doc>,
+    model: Model<Resource>,
 ) {
     return async function <
-        Args extends { _id: string } = {
+        Arguments extends { _id: string } = {
             _id: string;
         },
     >(
         _parent: unknown,
-        args: Args,
+        args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
     ) {
@@ -353,22 +313,14 @@ function deleteResourceByIdResolver<
             console.groupEnd();
 
             const deleteResult = await deleteResourceByIdService(
-                args._id,
+                args["_id"],
                 model,
             );
-            if (deleteResult.err) {
-                return await handleErrorResult(
-                    deleteResult,
-                    context.req,
-                );
-            }
 
-            const deleteMaybe = deleteResult.safeUnwrap();
-            if (deleteMaybe.none) {
-                console.error("Failed to delete resource.");
-                return null;
-            }
-            const deleteSuccess = deleteMaybe.safeUnwrap();
+            const deleteSuccess = await unwrapResultAndOption(
+                deleteResult,
+                context.req,
+            );
 
             return deleteSuccess;
         } catch (error: unknown) {

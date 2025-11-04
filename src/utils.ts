@@ -13,6 +13,26 @@ import { createNewResourceService } from "./services/index.ts";
 import type { DecodedToken, SafeError, SafeResult } from "./types.ts";
 const { Err, None, Ok, Some } = tsresults;
 
+async function unwrapResultAndOption<Data = unknown>(
+    result: SafeResult<Data>,
+    req: Request,
+): Promise<Data | null> {
+    if (result.err) {
+        console.error(
+            "unwrapResultAndOption encountered an error:",
+            result.val,
+        );
+        return await handleErrorResult(result, req);
+    }
+    const dataMaybe = result.safeUnwrap();
+    if (dataMaybe.none) {
+        console.warn("unwrapResultAndOption found no data.");
+        return null;
+    }
+
+    return dataMaybe.safeUnwrap();
+}
+
 function createSafeSuccessResult<Data = unknown>(
     data: Data,
 ): OkImpl<Option<NonNullable<Data>>> {
@@ -319,5 +339,6 @@ export {
     removeFieldFromObject,
     signJWTSafe,
     splitResourceIDFromArgs,
+    unwrapResultAndOption,
     verifyJWTSafe,
 };

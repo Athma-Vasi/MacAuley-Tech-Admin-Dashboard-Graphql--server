@@ -20,6 +20,7 @@ import {
     hashStringSafe,
     removeFieldFromObject,
     signJWTSafe,
+    unwrapResultAndOption,
     verifyJWTSafe,
 } from "../../utils.ts";
 import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
@@ -36,7 +37,7 @@ const authResolvers = {
             context: { req: Request },
         ): Promise<boolean> => {
             try {
-                console.group(
+                console.log(
                     "Checking if username or email exists at register:",
                     args.username,
                 );
@@ -54,7 +55,6 @@ const authResolvers = {
                     );
                     return true;
                 }
-
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
                     return true;
@@ -77,121 +77,108 @@ const authResolvers = {
             args: UserSchema,
             context: { req: Request },
         ) => {
-            // assuming that username and email were already checked for existence
-
-            const hashPasswordResult = await hashStringSafe({
-                saltRounds: HASH_SALT_ROUNDS,
-                stringToHash: args.password,
-            });
-            if (hashPasswordResult.err) {
-                return await handleErrorResult(
+            try { // assuming that username and email were already checked for existence
+                const hashPasswordResult = await hashStringSafe({
+                    saltRounds: HASH_SALT_ROUNDS,
+                    stringToHash: args.password,
+                });
+                const hashedPassword = await unwrapResultAndOption(
                     hashPasswordResult,
                     context.req,
                 );
-            }
-            const hashedPasswordMaybe = hashPasswordResult.safeUnwrap();
-            if (hashedPasswordMaybe.none) {
-                return null;
-            }
-            const hashedPassword = hashedPasswordMaybe.safeUnwrap();
+                if (hashedPassword == null) {
+                    return null;
+                }
 
-            const userSchema = {
-                ...args,
-                password: hashedPassword,
-            };
+                const userSchema = {
+                    ...args,
+                    password: hashedPassword,
+                };
 
-            const createUserResult = await createNewResourceService(
-                userSchema,
-                UserModel,
-            );
-            if (createUserResult.err) {
-                return await handleErrorResult(
+                const createUserResult = await createNewResourceService(
+                    userSchema,
+                    UserModel,
+                );
+                const createdUserDocument = await unwrapResultAndOption(
                     createUserResult,
                     context.req,
                 );
-            }
-            const createdUserMaybe = createUserResult.safeUnwrap();
-            if (createdUserMaybe.none) {
-                return null;
-            }
+                if (createdUserDocument == null) {
+                    return null;
+                }
 
-            const createdUserDocument = createdUserMaybe.safeUnwrap();
-
-            const { fileUploads } = context.req.body;
-            const fileUploadSchema: FileUploadSchema = {
-                ...fileUploads[0],
-                associatedDocumentId: createdUserDocument._id,
-                userId: createdUserDocument._id,
-                username: createdUserDocument.username,
-            };
-            // create file upload document for profile picture
-            const createFileUploadResult = await createNewResourceService(
-                fileUploadSchema,
-                FileUploadModel,
-            );
-            if (createFileUploadResult.err) {
-                return await handleErrorResult(
+                const { fileUploads } = context.req.body;
+                const fileUploadSchema: FileUploadSchema = {
+                    ...fileUploads[0],
+                    associatedDocumentId: createdUserDocument._id,
+                    userId: createdUserDocument._id,
+                    username: createdUserDocument.username,
+                };
+                // create file upload document for profile picture
+                const createFileUploadResult = await createNewResourceService(
+                    fileUploadSchema,
+                    FileUploadModel,
+                );
+                const createdFileUploadDocument = await unwrapResultAndOption(
                     createFileUploadResult,
                     context.req,
                 );
-            }
-            const createdFileUploadMaybe = createFileUploadResult.safeUnwrap();
-            if (createdFileUploadMaybe.none) {
-                return null;
-            }
-            const createdFileUploadDocument = createdFileUploadMaybe
-                .safeUnwrap();
+                if (createdFileUploadDocument == null) {
+                    return null;
+                }
 
-            // update user document with profile picture file upload id
-            const updateUserDocumentResult = await updateResourceByIdService({
-                resourceId: createdUserDocument._id.toString(),
-                model: UserModel,
-                updateFields: {
-                    fileUploadId: createdFileUploadDocument._id,
-                },
-                updateOperator: "$set",
-            });
-            if (updateUserDocumentResult.err) {
-                return await handleErrorResult(
+                // update user document with profile picture file upload id
+                const updateUserDocumentResult =
+                    await updateResourceByIdService({
+                        resourceId: createdUserDocument._id.toString(),
+                        model: UserModel,
+                        updateFields: {
+                            fileUploadId: createdFileUploadDocument._id,
+                        },
+                        updateOperator: "$set",
+                    });
+                const updatedUserDocument = await unwrapResultAndOption(
                     updateUserDocumentResult,
                     context.req,
                 );
-            }
-            const updatedUserDocumentMaybe = updateUserDocumentResult
-                .safeUnwrap();
-            if (updatedUserDocumentMaybe.none) {
-                return null;
-            }
-            const updatedUserDocument = updatedUserDocumentMaybe
-                .safeUnwrap();
+                if (updatedUserDocument == null) {
+                    return null;
+                }
 
-            // update the file upload document to maintain
-            // a bidirectional relationship with the user.
-            const updateFileUploadResult = await updateResourceByIdService({
-                resourceId: createdFileUploadDocument._id.toString(),
-                model: FileUploadModel,
-                updateFields: {
-                    associatedDocumentId: updatedUserDocument._id,
-                },
-                updateOperator: "$set",
-            });
-            if (updateFileUploadResult.err) {
-                return await handleErrorResult(
-                    updateFileUploadResult,
+                // update the file upload document to maintain
+                // a bidirectional relationship with the user.
+                const updateFileUploadResult = await updateResourceByIdService({
+                    resourceId: createdFileUploadDocument._id.toString(),
+                    model: FileUploadModel,
+                    updateFields: {
+                        associatedDocumentId: updatedUserDocument._id,
+                    },
+                    updateOperator: "$set",
+                });
+                if (updateFileUploadResult.err) {
+                    return await handleErrorResult(
+                        updateFileUploadResult,
+                        context.req,
+                    );
+                }
+                const updatedFileUploadMaybe = updateFileUploadResult
+                    .safeUnwrap();
+                if (updatedFileUploadMaybe.none) {
+                    return null;
+                }
+
+                console.log(
+                    "Successfully registered user:",
+                    createdUserDocument.username,
+                );
+
+                return createdUserDocument;
+            } catch (error: unknown) {
+                return await handleCatchBlockError(
+                    error,
                     context.req,
                 );
             }
-            const updatedFileUploadMaybe = updateFileUploadResult.safeUnwrap();
-            if (updatedFileUploadMaybe.none) {
-                return null;
-            }
-
-            console.log(
-                "Successfully registered user:",
-                createdUserDocument.username,
-            );
-
-            return createdUserDocument;
         },
 
         loginUser: async (
@@ -199,133 +186,121 @@ const authResolvers = {
             args: { username: string; password: string },
             context: { req: Request },
         ) => {
-            const { password, username } = args;
-            // check if user with username exists
-            const getUserResult = await getResourceByFieldService({
-                model: UserModel,
-                filter: { username },
-                projection: {},
-                options: {},
-            });
-            if (getUserResult.err) {
-                return await handleErrorResult(
+            try {
+                const { password, username } = args;
+                // check if user with username exists
+                const getUserResult = await getResourceByFieldService({
+                    model: UserModel,
+                    filter: { username },
+                    projection: {},
+                    options: {},
+                });
+                const userDocument = await unwrapResultAndOption(
                     getUserResult,
                     context.req,
                 );
-            }
-            const userMaybe = getUserResult.safeUnwrap();
-            if (userMaybe.none) {
-                return null;
-            }
-            const userDocument = userMaybe.safeUnwrap();
+                if (userDocument == null) {
+                    return null;
+                }
 
-            // verify password
-            const isPasswordValidResult =
-                await compareHashedStringWithPlainStringSafe({
-                    hashedString: userDocument.password,
-                    plainString: password,
-                });
-            if (isPasswordValidResult.err) {
-                return await handleErrorResult(
+                // verify password
+                const isPasswordValidResult =
+                    await compareHashedStringWithPlainStringSafe({
+                        hashedString: userDocument.password,
+                        plainString: password,
+                    });
+                const isPasswordValid = await unwrapResultAndOption(
                     isPasswordValidResult,
                     context.req,
                 );
-            }
-            const isPasswordValidMaybe = isPasswordValidResult.safeUnwrap();
-            if (isPasswordValidMaybe.none) {
-                return null;
-            }
-            const isPasswordValid = isPasswordValidMaybe.safeUnwrap();
-            if (!isPasswordValid) {
-                return null;
-            }
+                if (isPasswordValid == null || !isPasswordValid) {
+                    return null;
+                }
 
-            const { ACCESS_TOKEN_SEED } = CONFIG;
+                const { ACCESS_TOKEN_SEED } = CONFIG;
 
-            // create auth session (without token yet)
-            const authSessionSchema: AuthSchema = {
-                addressIP: context.req.ip ?? "unknown",
-                currentlyActiveToken: "notAToken",
-                expireAt: new Date(AUTH_SESSION_EXPIRY), // 24 hours
-                userAgent: context.req.get("User-Agent") ?? "unknown",
-                userId: userDocument._id,
-                username: userDocument.username,
-            };
+                // create auth session (without token yet)
+                const authSessionSchema: AuthSchema = {
+                    addressIP: context.req.ip ?? "unknown",
+                    currentlyActiveToken: "notAToken",
+                    expireAt: new Date(AUTH_SESSION_EXPIRY), // 24 hours
+                    userAgent: context.req.get("User-Agent") ?? "unknown",
+                    userId: userDocument._id,
+                    username: userDocument.username,
+                };
 
-            const createAuthSessionResult = await createNewResourceService(
-                authSessionSchema,
-                AuthModel,
-            );
-            if (createAuthSessionResult.err) {
-                return await handleErrorResult(
+                const createAuthSessionResult = await createNewResourceService(
+                    authSessionSchema,
+                    AuthModel,
+                );
+                const createdAuthSessionDocument = await unwrapResultAndOption(
                     createAuthSessionResult,
                     context.req,
                 );
-            }
-            const createdAuthSessionMaybe = createAuthSessionResult
-                .safeUnwrap();
-            if (createdAuthSessionMaybe.none) {
-                return null;
-            }
-            const createdAuthSessionDocument = createdAuthSessionMaybe
-                .safeUnwrap();
+                if (createdAuthSessionDocument == null) {
+                    return null;
+                }
 
-            // create a new access token and use the session ID to sign the new token
-            const accessTokenResult = signJWTSafe({
-                payload: {
-                    userId: userDocument._id.toString(),
-                    username: userDocument.username,
-                    roles: userDocument.roles,
-                    sessionId: createdAuthSessionDocument._id.toString(),
-                },
-                secretOrPrivateKey: ACCESS_TOKEN_SEED,
-                options: {
-                    expiresIn: ACCESS_TOKEN_EXPIRY,
-                },
-            });
-            if (accessTokenResult.err) {
-                return await handleErrorResult(
+                // create a new access token and use the session ID to sign the new token
+                const accessTokenResult = signJWTSafe({
+                    payload: {
+                        userId: userDocument._id.toString(),
+                        username: userDocument.username,
+                        roles: userDocument.roles,
+                        sessionId: createdAuthSessionDocument._id.toString(),
+                    },
+                    secretOrPrivateKey: ACCESS_TOKEN_SEED,
+                    options: {
+                        expiresIn: ACCESS_TOKEN_EXPIRY,
+                    },
+                });
+                const accessToken = await unwrapResultAndOption(
                     accessTokenResult,
                     context.req,
                 );
-            }
-            const accessTokenMaybe = accessTokenResult.safeUnwrap();
-            if (accessTokenMaybe.none) {
-                return null;
-            }
-            const accessToken = accessTokenMaybe.safeUnwrap();
+                if (accessToken == null) {
+                    return null;
+                }
 
-            // update the session with the new access token
-            const updateSessionResult = await updateResourceByIdService({
-                updateFields: {
-                    currentlyActiveToken: accessToken,
-                    ip: context.req.ip ?? "unknown",
-                    userAgent: context.req.headers["user-agent"] ?? "unknown",
-                },
-                model: AuthModel,
-                resourceId: createdAuthSessionDocument._id
-                    .toString(),
-                updateOperator: "$set",
-            });
-            if (updateSessionResult.err) {
-                return await handleErrorResult(
+                // update the session with the new access token
+                const updateSessionResult = await updateResourceByIdService({
+                    updateFields: {
+                        currentlyActiveToken: accessToken,
+                        ip: context.req.ip ?? "unknown",
+                        userAgent: context.req.headers["user-agent"] ??
+                            "unknown",
+                    },
+                    model: AuthModel,
+                    resourceId: createdAuthSessionDocument._id
+                        .toString(),
+                    updateOperator: "$set",
+                });
+                const updatedSessionDocument = await unwrapResultAndOption(
                     updateSessionResult,
                     context.req,
                 );
-            }
-            const updatedSessionMaybe = updateSessionResult.safeUnwrap();
-            if (updatedSessionMaybe.none) {
-                return null;
-            }
+                if (updatedSessionDocument == null) {
+                    return null;
+                }
 
-            const userDocWithoutPassword = removeFieldFromObject(
-                userDocument,
-                "password",
-            );
-            return {
-                user: userDocWithoutPassword,
-                accessToken: accessToken,
-            };
+                console.log(
+                    `User ${userDocument.username} logged in successfully.`,
+                );
+
+                const userDocWithoutPassword = removeFieldFromObject(
+                    userDocument,
+                    "password",
+                );
+                return {
+                    user: userDocWithoutPassword,
+                    accessToken: accessToken,
+                };
+            } catch (error: unknown) {
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
+            }
         },
 
         logoutUser: async (
@@ -333,60 +308,59 @@ const authResolvers = {
             args: { accessToken: string },
             context: { req: Request },
         ) => {
-            const { accessToken } = args;
-            const { ACCESS_TOKEN_SEED } = CONFIG;
+            try {
+                const { accessToken } = args;
+                const { ACCESS_TOKEN_SEED } = CONFIG;
 
-            // verify that the access token is valid
-            const verifyTokenResult = verifyJWTSafe({
-                seed: ACCESS_TOKEN_SEED,
-                token: accessToken,
-            });
-            if (verifyTokenResult.err) {
-                return await handleErrorResult(
+                // verify that the access token is valid
+                const verifyTokenResult = verifyJWTSafe({
+                    seed: ACCESS_TOKEN_SEED,
+                    token: accessToken,
+                });
+                const verifiedToken = await unwrapResultAndOption(
                     verifyTokenResult,
                     context.req,
                 );
-            }
-            const verifiedTokenMaybe = verifyTokenResult.safeUnwrap();
-            if (verifiedTokenMaybe.none) {
-                return null;
-            }
-            // const verifiedToken = verifiedTokenMaybe.safeUnwrap();
+                if (verifiedToken == null) {
+                    return null;
+                }
 
-            // decode token
-            const decodedTokenResult = decodeJWTSafe(accessToken);
-            if (decodedTokenResult.err) {
-                return await handleErrorResult(
+                // decode token
+                const decodedTokenResult = decodeJWTSafe(accessToken);
+                const decodedToken = await unwrapResultAndOption(
                     decodedTokenResult,
                     context.req,
                 );
-            }
-            const decodedTokenMaybe = decodedTokenResult.safeUnwrap();
-            if (decodedTokenMaybe.none) {
-                return null;
-            }
-            const decodedToken = decodedTokenMaybe.safeUnwrap();
-            const sessionId = decodedToken.sessionId.toString();
+                if (decodedToken == null) {
+                    return null;
+                }
+                const sessionId = decodedToken.sessionId.toString();
 
-            // delete auth session
-            const deleteAuthSessionResult = await deleteResourceByIdService(
-                sessionId,
-                AuthModel,
-            );
-            if (deleteAuthSessionResult.err) {
-                return await handleErrorResult(
+                // delete auth session
+                const deleteAuthSessionResult = await deleteResourceByIdService(
+                    sessionId,
+                    AuthModel,
+                );
+
+                const isDeleted = await unwrapResultAndOption(
                     deleteAuthSessionResult,
                     context.req,
                 );
-            }
-            const deletedAuthSessionMaybe = deleteAuthSessionResult
-                .safeUnwrap();
-            if (deletedAuthSessionMaybe.none) {
-                return null;
-            }
+                if (isDeleted == null) {
+                    return null;
+                }
 
-            const isDeleted = deletedAuthSessionMaybe.safeUnwrap();
-            return isDeleted;
+                console.log(
+                    `User with session ID ${sessionId} logged out successfully.`,
+                );
+
+                return isDeleted;
+            } catch (error: unknown) {
+                return await handleCatchBlockError(
+                    error,
+                    context.req,
+                );
+            }
         },
     },
 };
