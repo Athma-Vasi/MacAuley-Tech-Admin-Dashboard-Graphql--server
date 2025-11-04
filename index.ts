@@ -81,10 +81,10 @@ try {
         morgan("dev"),
         expressMiddleware(server, {
             // deno-lint-ignore require-await
-            context: async ({ req }) => {
+            context: async ({ req: request }) => {
                 // const token = req.headers.authorization || "";
                 // return { token };
-                return req;
+                return request;
             },
         }),
     );

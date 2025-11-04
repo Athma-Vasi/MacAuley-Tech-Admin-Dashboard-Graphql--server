@@ -10,12 +10,14 @@ import {
     getResourceByIdService,
     updateResourceByIdService,
 } from "../services/index.ts";
-import type { RecordDB } from "../types.ts";
+import type { RecordDB, ServerResponseGraphQL } from "../types.ts";
 import {
+    createServerErrorResponseGraphQL,
+    createServerSuccessResponseGraphQL,
     getProjectionFromInfo,
     handleCatchBlockError,
+    handleErrorResult,
     splitResourceIDFromArgs,
-    unwrapResultAndOption,
 } from "../utils.ts";
 
 /**
@@ -37,10 +39,11 @@ function getAllResourcesResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         info: GraphQLResolveInfo,
-    ): Promise<Array<Partial<Resource>> | null> {
+    ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
+            const { request } = context;
             const projection = getProjectionFromInfo(info);
             const filter = {};
             const options = {};
@@ -60,16 +63,29 @@ function getAllResourcesResolver<
                 options,
                 projection,
             });
-            const resources = await unwrapResultAndOption(
-                resourcesResult,
-                context.req,
-            );
+            if (resourcesResult.err) {
+                return await handleErrorResult(
+                    resourcesResult,
+                    request,
+                );
+            }
+            const resourcesMaybe = resourcesResult.safeUnwrap();
+            if (resourcesMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
+            }
+            const resources = resourcesMaybe.safeUnwrap();
 
-            return resources;
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: resources,
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };
@@ -87,10 +103,11 @@ function getResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         info: GraphQLResolveInfo,
-    ): Promise<Partial<Resource> | null> {
+    ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
+            const { request } = context;
             const projection = getProjectionFromInfo(info);
 
             console.group("Handling get resource by ID...");
@@ -106,14 +123,25 @@ function getResourceByIdResolver<
                 args["_id"],
                 model,
             );
-            const resource = await unwrapResultAndOption(
-                resourceResult,
-                context.req,
-            );
+            if (resourceResult.err) {
+                return await handleErrorResult(
+                    resourceResult,
+                    request,
+                );
+            }
+            const resourceMaybe = resourceResult.safeUnwrap();
+            if (resourceMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
+            }
+            const resource = resourceMaybe.safeUnwrap();
 
-            // If resource is null, return null; otherwise create a new object
-            // containing only the fields specified in the GraphQL projection
-            return resource == null ? null : Object.entries(resource).reduce(
+            // create a new object containing only the fields specified in the GraphQL projection
+            const partialResource = Object.entries(resource).reduce<
+                NonNullable<Resource>
+            >(
                 (partialResource, [key, value]) => {
                     if (projection[key] === 1) {
                         Object.defineProperty(partialResource, key, {
@@ -127,10 +155,15 @@ function getResourceByIdResolver<
                 },
                 Object.create(null),
             );
+
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: [partialResource],
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };
@@ -149,10 +182,11 @@ function getResourceByFieldResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         info: GraphQLResolveInfo,
-    ): Promise<Partial<Resource> | null> {
+    ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
+            const { request } = context;
             const projection = getProjectionFromInfo(info);
             const filter = args;
             const options = {};
@@ -172,17 +206,29 @@ function getResourceByFieldResolver<
                 options,
                 projection,
             });
+            if (resourceResult.err) {
+                return await handleErrorResult(
+                    resourceResult,
+                    request,
+                );
+            }
+            const resourceMaybe = resourceResult.safeUnwrap();
+            if (resourceMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
+            }
+            const resource = resourceMaybe.safeUnwrap();
 
-            const resource = await unwrapResultAndOption(
-                resourceResult,
-                context.req,
-            );
-
-            return resource;
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: [resource],
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };
@@ -207,10 +253,11 @@ function createNewResourceResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         _info: GraphQLResolveInfo,
-    ): Promise<Resource | null> {
+    ): Promise<ServerResponseGraphQL<NonNullable<Resource>>> {
         try {
+            const { request } = context;
             console.group("Handling create resource...");
             console.log(
                 _parent,
@@ -223,17 +270,29 @@ function createNewResourceResolver<
                 args,
                 model,
             );
+            if (resourceResult.err) {
+                return await handleErrorResult(
+                    resourceResult,
+                    request,
+                );
+            }
+            const resourceMaybe = resourceResult.safeUnwrap();
+            if (resourceMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 500,
+                });
+            }
+            const resource = resourceMaybe.safeUnwrap();
 
-            const resource = await unwrapResultAndOption(
-                resourceResult,
-                context.req,
-            );
-
-            return resource;
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: [resource],
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };
@@ -251,10 +310,11 @@ function updateResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         _info: GraphQLResolveInfo,
-    ): Promise<Resource | null> {
+    ): Promise<ServerResponseGraphQL<NonNullable<Resource>>> {
         try {
+            const { request } = context;
             console.group("Handling update resource...");
             console.log(
                 _parent,
@@ -272,17 +332,29 @@ function updateResourceByIdResolver<
                 model,
                 updateOperator: "$set",
             });
+            if (resourceResult.err) {
+                return await handleErrorResult(
+                    resourceResult,
+                    request,
+                );
+            }
+            const resourceMaybe = resourceResult.safeUnwrap();
+            if (resourceMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
+            }
+            const resource = resourceMaybe.safeUnwrap();
 
-            const resource = await unwrapResultAndOption(
-                resourceResult,
-                context.req,
-            );
-
-            return resource;
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: [resource],
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };
@@ -300,10 +372,11 @@ function deleteResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { req: Request },
+        context: { request: Request },
         _info: GraphQLResolveInfo,
-    ): Promise<boolean | null> {
+    ): Promise<ServerResponseGraphQL<boolean>> {
         try {
+            const { request } = context;
             console.group("Handling delete resource...");
             console.log(
                 _parent,
@@ -316,17 +389,29 @@ function deleteResourceByIdResolver<
                 args["_id"],
                 model,
             );
+            if (deleteResult.err) {
+                return await handleErrorResult(
+                    deleteResult,
+                    request,
+                );
+            }
+            const deleteMaybe = deleteResult.safeUnwrap();
+            if (deleteMaybe.none) {
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
+            }
+            const deleteSuccess = deleteMaybe.safeUnwrap();
 
-            const deleteSuccess = await unwrapResultAndOption(
-                deleteResult,
-                context.req,
-            );
-
-            return deleteSuccess;
+            return createServerSuccessResponseGraphQL({
+                request,
+                dataBox: [deleteSuccess],
+            });
         } catch (error: unknown) {
             return await handleCatchBlockError(
                 error,
-                context.req,
+                context.request,
             );
         }
     };

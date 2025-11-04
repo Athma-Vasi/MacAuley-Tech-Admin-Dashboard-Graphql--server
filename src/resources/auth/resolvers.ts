@@ -12,8 +12,11 @@ import {
     getResourceByFieldService,
     updateResourceByIdService,
 } from "../../services/index.ts";
+import type { ServerResponseGraphQL } from "../../types.ts";
 import {
     compareHashedStringWithPlainStringSafe,
+    createServerErrorResponseGraphQL,
+    createServerSuccessResponseGraphQL,
     decodeJWTSafe,
     handleCatchBlockError,
     handleErrorResult,
@@ -24,7 +27,11 @@ import {
     verifyJWTSafe,
 } from "../../utils.ts";
 import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
-import { UserModel, type UserSchema } from "../user/model.ts";
+import {
+    type UserDocument,
+    UserModel,
+    type UserSchema,
+} from "../user/model.ts";
 import { AuthModel, type AuthSchema } from "./model.ts";
 
 const authResolvers = {
@@ -34,9 +41,10 @@ const authResolvers = {
         checkUsernameOrEmailExists: async (
             _: unknown,
             args: { username?: string; email?: string },
-            context: { req: Request },
-        ): Promise<boolean> => {
+            context: { request: Request },
+        ): Promise<ServerResponseGraphQL<boolean>> => {
             try {
+                const { request } = context;
                 console.log(
                     "Checking if username or email exists at register:",
                     args.username,
@@ -49,24 +57,28 @@ const authResolvers = {
                     options: {},
                 });
                 if (existingUserResult.err) {
-                    await handleErrorResult(
+                    return await handleErrorResult(
                         existingUserResult,
-                        context.req,
+                        request,
                     );
-                    return true;
                 }
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
-                    return true;
+                    return createServerSuccessResponseGraphQL({
+                        request,
+                        statusCode: 200,
+                    });
                 }
 
-                return false;
+                return createServerErrorResponseGraphQL({
+                    request,
+                    statusCode: 404,
+                });
             } catch (error: unknown) {
-                await handleCatchBlockError(
+                return await handleCatchBlockError(
                     error,
-                    context.req,
+                    context.request,
                 );
-                return true;
             }
         },
     },
@@ -75,20 +87,34 @@ const authResolvers = {
         registerUser: async (
             _: unknown,
             args: UserSchema,
-            context: { req: Request },
-        ): Promise<boolean | null> => {
-            try { // assuming that username and email were already checked for existence
+            context: { request: Request },
+        ): Promise<ServerResponseGraphQL<boolean>> => {
+            try {
+                const { request } = context;
+
+                console.log(
+                    "Registering new user:",
+                    args.username,
+                );
+                // assuming that username and email were already checked for existence
                 const hashPasswordResult = await hashStringSafe({
                     saltRounds: HASH_SALT_ROUNDS,
                     stringToHash: args.password,
                 });
-                const hashedPassword = await unwrapResultAndOption(
-                    hashPasswordResult,
-                    context.req,
-                );
-                if (hashedPassword == null) {
-                    return null;
+                if (hashPasswordResult.err) {
+                    return await handleErrorResult(
+                        hashPasswordResult,
+                        request,
+                    );
                 }
+                const hashedPasswordMaybe = hashPasswordResult.safeUnwrap();
+                if (hashedPasswordMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const hashedPassword = hashedPasswordMaybe.safeUnwrap();
 
                 const userSchema = {
                     ...args,
@@ -99,15 +125,22 @@ const authResolvers = {
                     userSchema,
                     UserModel,
                 );
-                const createdUserDocument = await unwrapResultAndOption(
-                    createUserResult,
-                    context.req,
-                );
-                if (createdUserDocument == null) {
-                    return null;
+                if (createUserResult.err) {
+                    return await handleErrorResult(
+                        createUserResult,
+                        request,
+                    );
                 }
+                const createdUserMaybe = createUserResult.safeUnwrap();
+                if (createdUserMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const createdUserDocument = createdUserMaybe.safeUnwrap();
 
-                const { fileUploads } = context.req.body;
+                const { fileUploads } = context.request.body;
                 const fileUploadSchema: FileUploadSchema = {
                     ...fileUploads[0],
                     associatedDocumentId: createdUserDocument._id,
@@ -119,13 +152,22 @@ const authResolvers = {
                     fileUploadSchema,
                     FileUploadModel,
                 );
-                const createdFileUploadDocument = await unwrapResultAndOption(
-                    createFileUploadResult,
-                    context.req,
-                );
-                if (createdFileUploadDocument == null) {
-                    return null;
+                if (createFileUploadResult.err) {
+                    return await handleErrorResult(
+                        createFileUploadResult,
+                        request,
+                    );
                 }
+                const createdFileUploadMaybe = createFileUploadResult
+                    .safeUnwrap();
+                if (createdFileUploadMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const createdFileUploadDocument = createdFileUploadMaybe
+                    .safeUnwrap();
 
                 // update user document with profile picture file upload id
                 const updateUserDocumentResult =
@@ -137,13 +179,21 @@ const authResolvers = {
                         },
                         updateOperator: "$set",
                     });
-                const updatedUserDocument = await unwrapResultAndOption(
-                    updateUserDocumentResult,
-                    context.req,
-                );
-                if (updatedUserDocument == null) {
-                    return null;
+                if (updateUserDocumentResult.err) {
+                    return await handleErrorResult(
+                        updateUserDocumentResult,
+                        request,
+                    );
                 }
+                const updatedUserMaybe = updateUserDocumentResult
+                    .safeUnwrap();
+                if (updatedUserMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const updatedUserDocument = updatedUserMaybe.safeUnwrap();
 
                 // update the file upload document to maintain
                 // a bidirectional relationship with the user.
@@ -158,13 +208,16 @@ const authResolvers = {
                 if (updateFileUploadResult.err) {
                     return await handleErrorResult(
                         updateFileUploadResult,
-                        context.req,
+                        request,
                     );
                 }
                 const updatedFileUploadMaybe = updateFileUploadResult
                     .safeUnwrap();
                 if (updatedFileUploadMaybe.none) {
-                    return null;
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
                 }
 
                 console.log(
@@ -172,11 +225,14 @@ const authResolvers = {
                     createdUserDocument.username,
                 );
 
-                return true;
+                return createServerSuccessResponseGraphQL({
+                    request,
+                    dataBox: [true],
+                });
             } catch (error: unknown) {
                 return await handleCatchBlockError(
                     error,
-                    context.req,
+                    context.request,
                 );
             }
         },
@@ -184,14 +240,10 @@ const authResolvers = {
         loginUser: async (
             _: unknown,
             args: { username: string; password: string },
-            context: { req: Request },
-        ): Promise<
-            {
-                user: Partial<UserSchema>;
-                accessToken: string;
-            } | null
-        > => {
+            context: { request: Request },
+        ): Promise<ServerResponseGraphQL<Omit<UserDocument, "password">>> => {
             try {
+                const { request } = context;
                 const { password, username } = args;
                 // check if user with username exists
                 const getUserResult = await getResourceByFieldService({
@@ -200,13 +252,20 @@ const authResolvers = {
                     projection: {},
                     options: {},
                 });
-                const userDocument = await unwrapResultAndOption(
-                    getUserResult,
-                    context.req,
-                );
-                if (userDocument == null) {
-                    return null;
+                if (getUserResult.err) {
+                    return await handleErrorResult(
+                        getUserResult,
+                        request,
+                    );
                 }
+                const userMaybe = getUserResult.safeUnwrap();
+                if (userMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 404,
+                    });
+                }
+                const userDocument = userMaybe.safeUnwrap();
 
                 // verify password
                 const isPasswordValidResult =
@@ -214,22 +273,31 @@ const authResolvers = {
                         hashedString: userDocument.password,
                         plainString: password,
                     });
-                const isPasswordValid = await unwrapResultAndOption(
-                    isPasswordValidResult,
-                    context.req,
-                );
-                if (isPasswordValid == null || !isPasswordValid) {
-                    return null;
+                if (isPasswordValidResult.err) {
+                    return await handleErrorResult(
+                        isPasswordValidResult,
+                        request,
+                    );
+                }
+                const isPasswordValidMaybe = isPasswordValidResult.safeUnwrap();
+                if (
+                    isPasswordValidMaybe.none ||
+                    !isPasswordValidMaybe.safeUnwrap()
+                ) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 401,
+                    });
                 }
 
                 const { ACCESS_TOKEN_SEED } = CONFIG;
 
                 // create auth session (without token yet)
                 const authSessionSchema: AuthSchema = {
-                    addressIP: context.req.ip ?? "unknown",
+                    addressIP: request.ip ?? "unknown",
                     currentlyActiveToken: "notAToken",
                     expireAt: new Date(AUTH_SESSION_EXPIRY), // 24 hours
-                    userAgent: context.req.get("User-Agent") ?? "unknown",
+                    userAgent: request.get("User-Agent") ?? "unknown",
                     userId: userDocument._id,
                     username: userDocument.username,
                 };
@@ -238,13 +306,22 @@ const authResolvers = {
                     authSessionSchema,
                     AuthModel,
                 );
-                const createdAuthSessionDocument = await unwrapResultAndOption(
-                    createAuthSessionResult,
-                    context.req,
-                );
-                if (createdAuthSessionDocument == null) {
-                    return null;
+                if (createAuthSessionResult.err) {
+                    return await handleErrorResult(
+                        createAuthSessionResult,
+                        request,
+                    );
                 }
+                const createdAuthSessionMaybe = createAuthSessionResult
+                    .safeUnwrap();
+                if (createdAuthSessionMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const createdAuthSessionDocument = createdAuthSessionMaybe
+                    .safeUnwrap();
 
                 // create a new access token and use the session ID to sign the new token
                 const accessTokenResult = signJWTSafe({
@@ -259,20 +336,27 @@ const authResolvers = {
                         expiresIn: ACCESS_TOKEN_EXPIRY,
                     },
                 });
-                const accessToken = await unwrapResultAndOption(
-                    accessTokenResult,
-                    context.req,
-                );
-                if (accessToken == null) {
-                    return null;
+                if (accessTokenResult.err) {
+                    return await handleErrorResult(
+                        accessTokenResult,
+                        request,
+                    );
                 }
+                const accessTokenMaybe = accessTokenResult.safeUnwrap();
+                if (accessTokenMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const accessToken = accessTokenMaybe.safeUnwrap();
 
                 // update the session with the new access token
                 const updateSessionResult = await updateResourceByIdService({
                     updateFields: {
                         currentlyActiveToken: accessToken,
-                        ip: context.req.ip ?? "unknown",
-                        userAgent: context.req.headers["user-agent"] ??
+                        ip: request.ip ?? "unknown",
+                        userAgent: request.headers["user-agent"] ??
                             "unknown",
                     },
                     model: AuthModel,
@@ -280,12 +364,18 @@ const authResolvers = {
                         .toString(),
                     updateOperator: "$set",
                 });
-                const updatedSessionDocument = await unwrapResultAndOption(
-                    updateSessionResult,
-                    context.req,
-                );
-                if (updatedSessionDocument == null) {
-                    return null;
+                if (updateSessionResult.err) {
+                    return await handleErrorResult(
+                        updateSessionResult,
+                        request,
+                    );
+                }
+                const updatedSessionMaybe = updateSessionResult.safeUnwrap();
+                if (updatedSessionMaybe.none) {
+                    return createServerErrorResponseGraphQL({
+                        request,
+                        statusCode: 500,
+                    });
                 }
 
                 console.log(
@@ -296,14 +386,15 @@ const authResolvers = {
                     userDocument,
                     "password",
                 );
-                return {
-                    user: userDocWithoutPassword,
-                    accessToken: accessToken,
-                };
+
+                return createServerSuccessResponseGraphQL({
+                    request,
+                    dataBox: [userDocWithoutPassword],
+                });
             } catch (error: unknown) {
                 return await handleCatchBlockError(
                     error,
-                    context.req,
+                    context.request,
                 );
             }
         },
@@ -311,7 +402,7 @@ const authResolvers = {
         logoutUser: async (
             _: unknown,
             args: { accessToken: string },
-            context: { req: Request },
+            context: { request: Request },
         ): Promise<boolean | null> => {
             try {
                 const { accessToken } = args;
@@ -324,7 +415,7 @@ const authResolvers = {
                 });
                 const verifiedToken = await unwrapResultAndOption(
                     verifyTokenResult,
-                    context.req,
+                    request,
                 );
                 if (verifiedToken == null) {
                     return null;
@@ -334,7 +425,7 @@ const authResolvers = {
                 const decodedTokenResult = decodeJWTSafe(accessToken);
                 const decodedToken = await unwrapResultAndOption(
                     decodedTokenResult,
-                    context.req,
+                    request,
                 );
                 if (decodedToken == null) {
                     return null;
@@ -349,7 +440,7 @@ const authResolvers = {
 
                 const isDeleted = await unwrapResultAndOption(
                     deleteAuthSessionResult,
-                    context.req,
+                    request,
                 );
                 if (isDeleted == null) {
                     return null;
@@ -363,7 +454,7 @@ const authResolvers = {
             } catch (error: unknown) {
                 return await handleCatchBlockError(
                     error,
-                    context.req,
+                    request,
                 );
             }
         },

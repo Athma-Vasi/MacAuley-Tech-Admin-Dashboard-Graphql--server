@@ -8,6 +8,7 @@ type AllStoreLocations = "All Locations" | StoreLocation;
 type FileExtension = "jpeg" | "png" | "jpg" | "webp";
 
 type UserRoles = ("Admin" | "Employee" | "Manager")[];
+
 type DecodedToken = {
     userId: Types.ObjectId;
     username: string;
@@ -16,6 +17,37 @@ type DecodedToken = {
     iat: number;
     exp: number;
 };
+
+type ServerSuccessResponseGraphQL<Data = unknown> = {
+    accessToken: string;
+    dataBox: Array<Data>;
+    message: string;
+    statusCode: number;
+    timestamp: Date;
+    totalDocuments?: number;
+    totalPages?: number;
+    // requestId?: string;
+    // extensions?: Record<string, unknown>;
+    // path?: string[];
+};
+
+type ServerErrorResponseGraphQL = {
+    accessToken: string;
+    dataBox: [];
+    message: string;
+    statusCode: number;
+    timestamp: Date;
+    totalDocuments?: number;
+    totalPages?: number;
+    // requestId?: string;
+    // errors?: GraphQLFormattedError[];
+    // extensions?: Record<string, unknown>;
+    // path?: string[];
+};
+
+type ServerResponseGraphQL<Data = unknown> =
+    | ServerSuccessResponseGraphQL<Data>
+    | ServerErrorResponseGraphQL;
 
 type RecordDB<
     Schema extends Record<string, unknown> = Record<string, unknown>,
@@ -153,6 +185,10 @@ export type {
     ResponsePayload,
     SafeError,
     SafeResult,
+    ServerErrorResponseGraphQL,
+    ServerResponseGraphQL,
+    ServerSuccessResponseGraphQL,
     StoreLocation,
     SuccessPayload,
+    UserRoles,
 };

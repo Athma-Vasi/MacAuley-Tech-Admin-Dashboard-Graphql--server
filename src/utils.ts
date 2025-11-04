@@ -4,25 +4,146 @@ import type { GraphQLResolveInfo } from "graphql";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import type { Buffer } from "node:buffer";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
-import { PROPERTY_DESCRIPTOR } from "./constants.ts";
+import { PROPERTY_DESCRIPTOR, STATUS_DESCRIPTION_TABLE } from "./constants.ts";
 import {
     ErrorLogModel,
     type ErrorLogSchema,
 } from "./resources/errorLog/model.ts";
 import { createNewResourceService } from "./services/index.ts";
-import type { DecodedToken, SafeError, SafeResult } from "./types.ts";
+import type {
+    DecodedToken,
+    SafeError,
+    SafeResult,
+    ServerErrorResponseGraphQL,
+    ServerResponseGraphQL,
+} from "./types.ts";
 const { Err, None, Ok, Some } = tsresults;
+
+function createErrorLogSchema(
+    safeErrorResult: ErrImpl<SafeError>,
+    request: Request,
+): ErrorLogSchema {
+    const { message, name, original, stack } = safeErrorResult.val;
+    const { body = {} } = request;
+    const { username = "unknown", userId = "unknown", sessionId = "unknown" } =
+        body;
+    const { headers, ip, method, path } = request;
+
+    const errorLog: ErrorLogSchema = {
+        message: message,
+        name: name,
+        stack: stack.none ? "ｶ ｷ ｸ ｹ ｺ ｻ ｼ ｽ" : stack.val,
+        original: original.none ? "ｾ ｿ ﾀ ﾁ ﾂ ﾃ ﾄ ﾅ" : original.val,
+        body: serializeSafe(body),
+        sessionId: sessionId.toString(),
+        userId: userId.toString(),
+        username: username,
+    };
+
+    if (headers) {
+        Object.defineProperty(errorLog, "headers", {
+            value: serializeSafe(headers),
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (ip) {
+        Object.defineProperty(errorLog, "ip", {
+            value: ip,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (method) {
+        Object.defineProperty(errorLog, "method", {
+            value: method,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (path) {
+        Object.defineProperty(errorLog, "path", {
+            value: path,
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+    if (request.headers["user-agent"]) {
+        Object.defineProperty(errorLog, "userAgent", {
+            value: request.headers["user-agent"],
+            ...PROPERTY_DESCRIPTOR,
+        });
+    }
+
+    return errorLog;
+}
+
+async function handleCatchBlockError(
+    error: unknown,
+    request: Request,
+): Promise<ServerErrorResponseGraphQL> {
+    try {
+        console.error("handling catch block error: ", error);
+
+        const safeErrorResult = createSafeErrorResult(error);
+        const errorLogSchema = createErrorLogSchema(
+            safeErrorResult,
+            request,
+        );
+        await createNewResourceService(
+            errorLogSchema,
+            ErrorLogModel,
+        );
+
+        return createServerErrorResponseGraphQL({
+            request,
+            statusCode: 500,
+        });
+    } catch (_error: unknown) {
+        return createServerErrorResponseGraphQL({
+            request,
+            statusCode: 500,
+        });
+    }
+}
+
+async function handleErrorResult(
+    safeErrorResult: ErrImpl<SafeError>,
+    request: Request,
+): Promise<ServerErrorResponseGraphQL> {
+    try {
+        console.error(
+            "handling error result: ",
+            safeErrorResult.mapErr((e) => e),
+        );
+
+        const errorLogSchema = createErrorLogSchema(
+            safeErrorResult,
+            request,
+        );
+        await createNewResourceService(
+            errorLogSchema,
+            ErrorLogModel,
+        );
+
+        return createServerErrorResponseGraphQL({
+            request,
+            statusCode: 500,
+        });
+    } catch (_error: unknown) {
+        return createServerErrorResponseGraphQL({
+            request,
+            statusCode: 500,
+        });
+    }
+}
 
 async function unwrapResultAndOption<Data = unknown>(
     result: SafeResult<Data>,
-    req: Request,
+    request: Request,
 ): Promise<Data | null> {
     if (result.err) {
         console.error(
             "unwrapResultAndOption encountered an error:",
             result.val,
         );
-        return await handleErrorResult(result, req);
+        return await handleErrorResult(result, request);
     }
     const dataMaybe = result.safeUnwrap();
     if (dataMaybe.none) {
@@ -31,6 +152,78 @@ async function unwrapResultAndOption<Data = unknown>(
     }
 
     return dataMaybe.safeUnwrap();
+}
+
+function createServerErrorResponseGraphQL({
+    request,
+    dataBox = [],
+    statusCode = 500,
+    message = STATUS_DESCRIPTION_TABLE[statusCode] ?? "Internal Server Error",
+    totalDocuments,
+    totalPages,
+}: {
+    request: Request;
+    dataBox?: [];
+    statusCode?: number;
+    message?: string;
+    totalDocuments?: number;
+    totalPages?: number;
+}): ServerErrorResponseGraphQL {
+    const { accessToken = "" } = request.body;
+    const response: ServerErrorResponseGraphQL = {
+        accessToken,
+        dataBox,
+        message,
+        statusCode,
+        timestamp: new Date(),
+    };
+
+    // Only add optional properties if they have actual values
+    if (totalDocuments !== undefined) {
+        response.totalDocuments = totalDocuments;
+    }
+
+    if (totalPages !== undefined) {
+        response.totalPages = totalPages;
+    }
+
+    return response;
+}
+
+function createServerSuccessResponseGraphQL<Data = unknown>({
+    request,
+    dataBox = [],
+    statusCode = 200,
+    message = STATUS_DESCRIPTION_TABLE[statusCode] ?? "Internal Server Error",
+    totalDocuments,
+    totalPages,
+}: {
+    request: Request;
+    dataBox?: Array<Data>;
+    statusCode?: number;
+    message?: string;
+    totalDocuments?: number;
+    totalPages?: number;
+}): ServerResponseGraphQL<Data> {
+    const { accessToken = "" } = request.body;
+    const response: ServerResponseGraphQL<Data> = {
+        accessToken,
+        dataBox,
+        message,
+        statusCode,
+        timestamp: new Date(),
+    };
+
+    // Only add optional properties if they have actual values
+    if (totalDocuments !== undefined) {
+        response.totalDocuments = totalDocuments;
+    }
+
+    if (totalPages !== undefined) {
+        response.totalPages = totalPages;
+    }
+
+    return response;
 }
 
 function createSafeSuccessResult<Data = unknown>(
@@ -144,109 +337,6 @@ function splitResourceIDFromArgs<
         );
 }
 
-function createErrorLogSchema(
-    safeErrorResult: ErrImpl<SafeError>,
-    request: Request,
-): ErrorLogSchema {
-    const { message, name, original, stack } = safeErrorResult.val;
-    const { body = {} } = request;
-    const { username = "unknown", userId = "unknown", sessionId = "unknown" } =
-        body;
-    const { headers, ip, method, path } = request;
-
-    const errorLog: ErrorLogSchema = {
-        message: message,
-        name: name,
-        stack: stack.none ? "ｶ ｷ ｸ ｹ ｺ ｻ ｼ ｽ" : stack.val,
-        original: original.none ? "ｾ ｿ ﾀ ﾁ ﾂ ﾃ ﾄ ﾅ" : original.val,
-        body: serializeSafe(body),
-        sessionId: sessionId.toString(),
-        userId: userId.toString(),
-        username: username,
-    };
-
-    if (headers) {
-        Object.defineProperty(errorLog, "headers", {
-            value: serializeSafe(headers),
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-    if (ip) {
-        Object.defineProperty(errorLog, "ip", {
-            value: ip,
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-    if (method) {
-        Object.defineProperty(errorLog, "method", {
-            value: method,
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-    if (path) {
-        Object.defineProperty(errorLog, "path", {
-            value: path,
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-    if (request.headers["user-agent"]) {
-        Object.defineProperty(errorLog, "userAgent", {
-            value: request.headers["user-agent"],
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-
-    return errorLog;
-}
-
-async function handleCatchBlockError(
-    error: unknown,
-    request: Request,
-): Promise<null> {
-    try {
-        console.error("handling catch block error: ", error);
-
-        const safeErrorResult = createSafeErrorResult(error);
-        const errorLogSchema = createErrorLogSchema(
-            safeErrorResult,
-            request,
-        );
-        await createNewResourceService(
-            errorLogSchema,
-            ErrorLogModel,
-        );
-
-        return null;
-    } catch (_error: unknown) {
-        return null;
-    }
-}
-
-async function handleErrorResult(
-    safeErrorResult: ErrImpl<SafeError>,
-    request: Request,
-): Promise<null> {
-    try {
-        console.error(
-            "handling error result: ",
-            safeErrorResult.mapErr((e) => e),
-        );
-
-        const errorLogSchema = createErrorLogSchema(
-            safeErrorResult,
-            request,
-        );
-        await createNewResourceService(
-            errorLogSchema,
-            ErrorLogModel,
-        );
-
-        return null;
-    } catch (_error: unknown) {
-        return null;
-    }
-}
-
 async function compareHashedStringWithPlainStringSafe({
     hashedString,
     plainString,
@@ -331,12 +421,15 @@ export {
     createErrorLogSchema,
     createSafeErrorResult,
     createSafeSuccessResult,
+    createServerErrorResponseGraphQL,
+    createServerSuccessResponseGraphQL,
     decodeJWTSafe,
     getProjectionFromInfo,
     handleCatchBlockError,
     handleErrorResult,
     hashStringSafe,
     removeFieldFromObject,
+    serializeSafe,
     signJWTSafe,
     splitResourceIDFromArgs,
     unwrapResultAndOption,
