@@ -39,7 +39,7 @@ function getAllResourcesResolver<
         args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
-    ) {
+    ): Promise<Array<Partial<Resource>> | null> {
         try {
             const projection = getProjectionFromInfo(info);
             const filter = {};
@@ -89,7 +89,7 @@ function getResourceByIdResolver<
         args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
-    ) {
+    ): Promise<Partial<Resource> | null> {
         try {
             const projection = getProjectionFromInfo(info);
 
@@ -151,7 +151,7 @@ function getResourceByFieldResolver<
         args: Arguments,
         context: { req: Request },
         info: GraphQLResolveInfo,
-    ) {
+    ): Promise<Partial<Resource> | null> {
         try {
             const projection = getProjectionFromInfo(info);
             const filter = args;
@@ -209,7 +209,7 @@ function createNewResourceResolver<
         args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
-    ) {
+    ): Promise<Resource | null> {
         try {
             console.group("Handling create resource...");
             console.log(
@@ -253,7 +253,7 @@ function updateResourceByIdResolver<
         args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
-    ) {
+    ): Promise<Resource | null> {
         try {
             console.group("Handling update resource...");
             console.log(
@@ -302,7 +302,7 @@ function deleteResourceByIdResolver<
         args: Arguments,
         context: { req: Request },
         _info: GraphQLResolveInfo,
-    ) {
+    ): Promise<boolean | null> {
         try {
             console.group("Handling delete resource...");
             console.log(

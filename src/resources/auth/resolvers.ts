@@ -76,7 +76,7 @@ const authResolvers = {
             _: unknown,
             args: UserSchema,
             context: { req: Request },
-        ) => {
+        ): Promise<boolean | null> => {
             try { // assuming that username and email were already checked for existence
                 const hashPasswordResult = await hashStringSafe({
                     saltRounds: HASH_SALT_ROUNDS,
@@ -172,7 +172,7 @@ const authResolvers = {
                     createdUserDocument.username,
                 );
 
-                return createdUserDocument;
+                return true;
             } catch (error: unknown) {
                 return await handleCatchBlockError(
                     error,
@@ -185,7 +185,12 @@ const authResolvers = {
             _: unknown,
             args: { username: string; password: string },
             context: { req: Request },
-        ) => {
+        ): Promise<
+            {
+                user: Partial<UserSchema>;
+                accessToken: string;
+            } | null
+        > => {
             try {
                 const { password, username } = args;
                 // check if user with username exists
@@ -307,7 +312,7 @@ const authResolvers = {
             _: unknown,
             args: { accessToken: string },
             context: { req: Request },
-        ) => {
+        ): Promise<boolean | null> => {
             try {
                 const { accessToken } = args;
                 const { ACCESS_TOKEN_SEED } = CONFIG;
