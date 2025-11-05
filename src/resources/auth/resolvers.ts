@@ -16,7 +16,7 @@ import type { ServerResponseGraphQL } from "../../types.ts";
 import {
     compareHashedStringWithPlainStringSafe,
     createServerErrorResponse,
-    createServerSuccessResponseGraphQL,
+    createServerSuccessResponse,
     decodeJWTSafe,
     handleCatchBlockError,
     handleErrorResult,
@@ -70,7 +70,7 @@ const authResolvers = {
                 }
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
-                    return createServerSuccessResponseGraphQL({
+                    return createServerSuccessResponse({
                         request,
                         statusCode: 200,
                     });
@@ -273,7 +273,7 @@ const authResolvers = {
                     createdUserDocument.username,
                 );
 
-                return createServerSuccessResponseGraphQL({
+                return createServerSuccessResponse({
                     request,
                     dataBox: [true],
                 });
@@ -480,7 +480,7 @@ const authResolvers = {
                     "password",
                 );
 
-                return createServerSuccessResponseGraphQL({
+                return createServerSuccessResponse({
                     request,
                     dataBox: [userDocWithoutPassword],
                 });
@@ -591,7 +591,7 @@ const authResolvers = {
                     `User with session ID ${sessionId} logged out successfully.`,
                 );
 
-                return createServerSuccessResponseGraphQL({
+                return createServerSuccessResponse({
                     request,
                     dataBox: [isDeleted],
                 });

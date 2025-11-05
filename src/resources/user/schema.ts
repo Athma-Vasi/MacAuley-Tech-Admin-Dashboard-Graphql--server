@@ -23,7 +23,6 @@ const userTypeDefs = `#graphql
         username: String!
         createdAt: String!
         updatedAt: String!
-        __v: Int!
     }
 
     type Query {

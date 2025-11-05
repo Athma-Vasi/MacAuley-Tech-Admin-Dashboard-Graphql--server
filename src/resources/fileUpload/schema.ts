@@ -13,7 +13,6 @@ const fileUploadTypeDefs = `#graphql
         associatedDocumentId: ID
         createdAt: String!
         updatedAt: String!
-        __v: Int!
     }
 
     type Query {

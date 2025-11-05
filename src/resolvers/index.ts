@@ -13,7 +13,7 @@ import {
 import type { RecordDB, ServerResponseGraphQL } from "../types.ts";
 import {
     createServerErrorResponse,
-    createServerSuccessResponseGraphQL,
+    createServerSuccessResponse,
     getProjectionFromInfo,
     handleCatchBlockError,
     handleErrorResult,
@@ -85,7 +85,7 @@ function getAllResourcesResolver<
             }
             const resources = resourcesMaybe.safeUnwrap();
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: resources,
             });
@@ -177,7 +177,7 @@ function getResourceByIdResolver<
                 Object.create(null),
             );
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: [partialResource],
             });
@@ -256,7 +256,7 @@ function getResourceByFieldResolver<
             }
             const resource = resourceMaybe.safeUnwrap();
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: [resource],
             });
@@ -334,7 +334,7 @@ function createNewResourceResolver<
             }
             const resource = resourceMaybe.safeUnwrap();
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: [resource],
             });
@@ -410,7 +410,7 @@ function updateResourceByIdResolver<
             }
             const resource = resourceMaybe.safeUnwrap();
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: [resource],
             });
@@ -481,7 +481,7 @@ function deleteResourceByIdResolver<
             }
             const deleteSuccess = deleteMaybe.safeUnwrap();
 
-            return createServerSuccessResponseGraphQL({
+            return createServerSuccessResponse({
                 request,
                 dataBox: [deleteSuccess],
             });

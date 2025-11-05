@@ -134,26 +134,6 @@ async function handleErrorResult(
     }
 }
 
-async function unwrapResultAndOption<Data = unknown>(
-    result: SafeResult<Data>,
-    request: Request,
-): Promise<Data | null> {
-    if (result.err) {
-        console.error(
-            "unwrapResultAndOption encountered an error:",
-            result.val,
-        );
-        return await handleErrorResult(result, request);
-    }
-    const dataMaybe = result.safeUnwrap();
-    if (dataMaybe.none) {
-        console.warn("unwrapResultAndOption found no data.");
-        return null;
-    }
-
-    return dataMaybe.safeUnwrap();
-}
-
 function createServerErrorResponse({
     request,
     dataBox = [],
@@ -190,7 +170,7 @@ function createServerErrorResponse({
     return response;
 }
 
-function createServerSuccessResponseGraphQL<Data = unknown>({
+function createServerSuccessResponse<Data = unknown>({
     request,
     dataBox = [],
     statusCode = 200,
@@ -423,7 +403,7 @@ export {
     createSafeErrorResult,
     createSafeSuccessResult,
     createServerErrorResponse,
-    createServerSuccessResponseGraphQL,
+    createServerSuccessResponse,
     decodeJWTSafe,
     getProjectionFromInfo,
     handleCatchBlockError,
@@ -433,6 +413,5 @@ export {
     serializeSafe,
     signJWTSafe,
     splitResourceIDFromArgs,
-    unwrapResultAndOption,
     verifyJWTSafe,
 };
