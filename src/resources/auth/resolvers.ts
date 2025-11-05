@@ -15,7 +15,7 @@ import {
 import type { ServerResponseGraphQL } from "../../types.ts";
 import {
     compareHashedStringWithPlainStringSafe,
-    createServerErrorResponseGraphQL,
+    createServerErrorResponse,
     createServerSuccessResponseGraphQL,
     decodeJWTSafe,
     handleCatchBlockError,
@@ -23,7 +23,6 @@ import {
     hashStringSafe,
     removeFieldFromObject,
     signJWTSafe,
-    unwrapResultAndOption,
     verifyJWTSafe,
 } from "../../utils.ts";
 import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
@@ -57,10 +56,17 @@ const authResolvers = {
                     options: {},
                 });
                 if (existingUserResult.err) {
-                    return await handleErrorResult(
-                        existingUserResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            existingUserResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
@@ -70,15 +76,22 @@ const authResolvers = {
                     });
                 }
 
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
             } catch (error: unknown) {
-                return await handleCatchBlockError(
-                    error,
-                    context.request,
-                );
+                try {
+                    return await handleCatchBlockError(
+                        error,
+                        context.request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request: context.request,
+                        statusCode: 500,
+                    });
+                }
             }
         },
     },
@@ -102,14 +115,21 @@ const authResolvers = {
                     stringToHash: args.password,
                 });
                 if (hashPasswordResult.err) {
-                    return await handleErrorResult(
-                        hashPasswordResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            hashPasswordResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const hashedPasswordMaybe = hashPasswordResult.safeUnwrap();
                 if (hashedPasswordMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -126,14 +146,21 @@ const authResolvers = {
                     UserModel,
                 );
                 if (createUserResult.err) {
-                    return await handleErrorResult(
-                        createUserResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            createUserResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const createdUserMaybe = createUserResult.safeUnwrap();
                 if (createdUserMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -153,15 +180,22 @@ const authResolvers = {
                     FileUploadModel,
                 );
                 if (createFileUploadResult.err) {
-                    return await handleErrorResult(
-                        createFileUploadResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            createFileUploadResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const createdFileUploadMaybe = createFileUploadResult
                     .safeUnwrap();
                 if (createdFileUploadMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -180,15 +214,22 @@ const authResolvers = {
                         updateOperator: "$set",
                     });
                 if (updateUserDocumentResult.err) {
-                    return await handleErrorResult(
-                        updateUserDocumentResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            updateUserDocumentResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const updatedUserMaybe = updateUserDocumentResult
                     .safeUnwrap();
                 if (updatedUserMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -206,15 +247,22 @@ const authResolvers = {
                     updateOperator: "$set",
                 });
                 if (updateFileUploadResult.err) {
-                    return await handleErrorResult(
-                        updateFileUploadResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            updateFileUploadResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const updatedFileUploadMaybe = updateFileUploadResult
                     .safeUnwrap();
                 if (updatedFileUploadMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -230,10 +278,17 @@ const authResolvers = {
                     dataBox: [true],
                 });
             } catch (error: unknown) {
-                return await handleCatchBlockError(
-                    error,
-                    context.request,
-                );
+                try {
+                    return await handleCatchBlockError(
+                        error,
+                        context.request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request: context.request,
+                        statusCode: 500,
+                    });
+                }
             }
         },
 
@@ -245,6 +300,7 @@ const authResolvers = {
             try {
                 const { request } = context;
                 const { password, username } = args;
+
                 // check if user with username exists
                 const getUserResult = await getResourceByFieldService({
                     model: UserModel,
@@ -253,14 +309,21 @@ const authResolvers = {
                     options: {},
                 });
                 if (getUserResult.err) {
-                    return await handleErrorResult(
-                        getUserResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            getUserResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const userMaybe = getUserResult.safeUnwrap();
                 if (userMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 404,
                     });
@@ -274,17 +337,24 @@ const authResolvers = {
                         plainString: password,
                     });
                 if (isPasswordValidResult.err) {
-                    return await handleErrorResult(
-                        isPasswordValidResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            isPasswordValidResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const isPasswordValidMaybe = isPasswordValidResult.safeUnwrap();
                 if (
                     isPasswordValidMaybe.none ||
                     !isPasswordValidMaybe.safeUnwrap()
                 ) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 401,
                     });
@@ -307,15 +377,22 @@ const authResolvers = {
                     AuthModel,
                 );
                 if (createAuthSessionResult.err) {
-                    return await handleErrorResult(
-                        createAuthSessionResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            createAuthSessionResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const createdAuthSessionMaybe = createAuthSessionResult
                     .safeUnwrap();
                 if (createdAuthSessionMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -337,14 +414,21 @@ const authResolvers = {
                     },
                 });
                 if (accessTokenResult.err) {
-                    return await handleErrorResult(
-                        accessTokenResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            accessTokenResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const accessTokenMaybe = accessTokenResult.safeUnwrap();
                 if (accessTokenMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -365,14 +449,21 @@ const authResolvers = {
                     updateOperator: "$set",
                 });
                 if (updateSessionResult.err) {
-                    return await handleErrorResult(
-                        updateSessionResult,
-                        request,
-                    );
+                    try {
+                        return await handleErrorResult(
+                            updateSessionResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
                 const updatedSessionMaybe = updateSessionResult.safeUnwrap();
                 if (updatedSessionMaybe.none) {
-                    return createServerErrorResponseGraphQL({
+                    return createServerErrorResponse({
                         request,
                         statusCode: 500,
                     });
@@ -382,7 +473,9 @@ const authResolvers = {
                     `User ${userDocument.username} logged in successfully.`,
                 );
 
-                const userDocWithoutPassword = removeFieldFromObject(
+                const userDocWithoutPassword: NonNullable<
+                    Omit<UserDocument, "password">
+                > = removeFieldFromObject(
                     userDocument,
                     "password",
                 );
@@ -392,10 +485,17 @@ const authResolvers = {
                     dataBox: [userDocWithoutPassword],
                 });
             } catch (error: unknown) {
-                return await handleCatchBlockError(
-                    error,
-                    context.request,
-                );
+                try {
+                    return await handleCatchBlockError(
+                        error,
+                        context.request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request: context.request,
+                        statusCode: 500,
+                    });
+                }
             }
         },
 
@@ -403,8 +503,9 @@ const authResolvers = {
             _: unknown,
             args: { accessToken: string },
             context: { request: Request },
-        ): Promise<boolean | null> => {
+        ): Promise<ServerResponseGraphQL<boolean>> => {
             try {
+                const { request } = context;
                 const { accessToken } = args;
                 const { ACCESS_TOKEN_SEED } = CONFIG;
 
@@ -413,23 +514,50 @@ const authResolvers = {
                     seed: ACCESS_TOKEN_SEED,
                     token: accessToken,
                 });
-                const verifiedToken = await unwrapResultAndOption(
-                    verifyTokenResult,
-                    request,
-                );
-                if (verifiedToken == null) {
-                    return null;
+                if (verifyTokenResult.err) {
+                    try {
+                        return await handleErrorResult(
+                            verifyTokenResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
+                }
+                const isTokenValidMaybe = verifyTokenResult.safeUnwrap();
+                if (isTokenValidMaybe.none) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 401,
+                    });
                 }
 
                 // decode token
                 const decodedTokenResult = decodeJWTSafe(accessToken);
-                const decodedToken = await unwrapResultAndOption(
-                    decodedTokenResult,
-                    request,
-                );
-                if (decodedToken == null) {
-                    return null;
+                if (decodedTokenResult.err) {
+                    try {
+                        return await handleErrorResult(
+                            decodedTokenResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
+                const decodedTokenMaybe = decodedTokenResult.safeUnwrap();
+                if (decodedTokenMaybe.none) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const decodedToken = decodedTokenMaybe.safeUnwrap();
                 const sessionId = decodedToken.sessionId.toString();
 
                 // delete auth session
@@ -437,25 +565,48 @@ const authResolvers = {
                     sessionId,
                     AuthModel,
                 );
-
-                const isDeleted = await unwrapResultAndOption(
-                    deleteAuthSessionResult,
-                    request,
-                );
-                if (isDeleted == null) {
-                    return null;
+                if (deleteAuthSessionResult.err) {
+                    try {
+                        return await handleErrorResult(
+                            deleteAuthSessionResult,
+                            request,
+                        );
+                    } catch (_error: unknown) {
+                        return createServerErrorResponse({
+                            request,
+                            statusCode: 500,
+                        });
+                    }
                 }
+                const isDeletedMaybe = deleteAuthSessionResult.safeUnwrap();
+                if (isDeletedMaybe.none) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
+                const isDeleted = isDeletedMaybe.safeUnwrap();
 
                 console.log(
                     `User with session ID ${sessionId} logged out successfully.`,
                 );
 
-                return isDeleted;
-            } catch (error: unknown) {
-                return await handleCatchBlockError(
-                    error,
+                return createServerSuccessResponseGraphQL({
                     request,
-                );
+                    dataBox: [isDeleted],
+                });
+            } catch (error: unknown) {
+                try {
+                    return await handleCatchBlockError(
+                        error,
+                        context.request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request: context.request,
+                        statusCode: 500,
+                    });
+                }
             }
         },
     },

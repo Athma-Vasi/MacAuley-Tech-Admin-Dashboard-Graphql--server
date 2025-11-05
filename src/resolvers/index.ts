@@ -12,7 +12,7 @@ import {
 } from "../services/index.ts";
 import type { RecordDB, ServerResponseGraphQL } from "../types.ts";
 import {
-    createServerErrorResponseGraphQL,
+    createServerErrorResponse,
     createServerSuccessResponseGraphQL,
     getProjectionFromInfo,
     handleCatchBlockError,
@@ -64,14 +64,21 @@ function getAllResourcesResolver<
                 projection,
             });
             if (resourcesResult.err) {
-                return await handleErrorResult(
-                    resourcesResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        resourcesResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const resourcesMaybe = resourcesResult.safeUnwrap();
             if (resourcesMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
@@ -83,10 +90,17 @@ function getAllResourcesResolver<
                 dataBox: resources,
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }
@@ -124,14 +138,21 @@ function getResourceByIdResolver<
                 model,
             );
             if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        resourceResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const resourceMaybe = resourceResult.safeUnwrap();
             if (resourceMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
@@ -161,10 +182,17 @@ function getResourceByIdResolver<
                 dataBox: [partialResource],
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }
@@ -207,14 +235,21 @@ function getResourceByFieldResolver<
                 projection,
             });
             if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        resourceResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const resourceMaybe = resourceResult.safeUnwrap();
             if (resourceMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
@@ -226,10 +261,17 @@ function getResourceByFieldResolver<
                 dataBox: [resource],
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }
@@ -271,14 +313,21 @@ function createNewResourceResolver<
                 model,
             );
             if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        resourceResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const resourceMaybe = resourceResult.safeUnwrap();
             if (resourceMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 500,
                 });
@@ -290,10 +339,17 @@ function createNewResourceResolver<
                 dataBox: [resource],
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }
@@ -333,14 +389,21 @@ function updateResourceByIdResolver<
                 updateOperator: "$set",
             });
             if (resourceResult.err) {
-                return await handleErrorResult(
-                    resourceResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        resourceResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const resourceMaybe = resourceResult.safeUnwrap();
             if (resourceMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
@@ -352,10 +415,17 @@ function updateResourceByIdResolver<
                 dataBox: [resource],
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }
@@ -390,14 +460,21 @@ function deleteResourceByIdResolver<
                 model,
             );
             if (deleteResult.err) {
-                return await handleErrorResult(
-                    deleteResult,
-                    request,
-                );
+                try {
+                    return await handleErrorResult(
+                        deleteResult,
+                        request,
+                    );
+                } catch (_error: unknown) {
+                    return createServerErrorResponse({
+                        request,
+                        statusCode: 500,
+                    });
+                }
             }
             const deleteMaybe = deleteResult.safeUnwrap();
             if (deleteMaybe.none) {
-                return createServerErrorResponseGraphQL({
+                return createServerErrorResponse({
                     request,
                     statusCode: 404,
                 });
@@ -409,10 +486,17 @@ function deleteResourceByIdResolver<
                 dataBox: [deleteSuccess],
             });
         } catch (error: unknown) {
-            return await handleCatchBlockError(
-                error,
-                context.request,
-            );
+            try {
+                return await handleCatchBlockError(
+                    error,
+                    context.request,
+                );
+            } catch (_error: unknown) {
+                return createServerErrorResponse({
+                    request: context.request,
+                    statusCode: 500,
+                });
+            }
         }
     };
 }

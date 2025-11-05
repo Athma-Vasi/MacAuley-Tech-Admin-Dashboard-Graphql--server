@@ -91,12 +91,12 @@ async function handleCatchBlockError(
             ErrorLogModel,
         );
 
-        return createServerErrorResponseGraphQL({
+        return createServerErrorResponse({
             request,
             statusCode: 500,
         });
     } catch (_error: unknown) {
-        return createServerErrorResponseGraphQL({
+        return createServerErrorResponse({
             request,
             statusCode: 500,
         });
@@ -122,12 +122,12 @@ async function handleErrorResult(
             ErrorLogModel,
         );
 
-        return createServerErrorResponseGraphQL({
+        return createServerErrorResponse({
             request,
             statusCode: 500,
         });
     } catch (_error: unknown) {
-        return createServerErrorResponseGraphQL({
+        return createServerErrorResponse({
             request,
             statusCode: 500,
         });
@@ -154,7 +154,7 @@ async function unwrapResultAndOption<Data = unknown>(
     return dataMaybe.safeUnwrap();
 }
 
-function createServerErrorResponseGraphQL({
+function createServerErrorResponse({
     request,
     dataBox = [],
     statusCode = 500,
@@ -408,10 +408,11 @@ function signJWTSafe({ payload, secretOrPrivateKey, options }: {
 
 function removeFieldFromObject<
     Obj extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>,
+    Field extends keyof Obj = keyof Obj,
 >(
     obj: Obj,
-    fieldToRemove: keyof Obj,
-): Omit<Obj, typeof fieldToRemove> {
+    fieldToRemove: Field,
+): Omit<Obj, Field> {
     const { [fieldToRemove]: _, ...rest } = obj;
     return rest;
 }
@@ -421,7 +422,7 @@ export {
     createErrorLogSchema,
     createSafeErrorResult,
     createSafeSuccessResult,
-    createServerErrorResponseGraphQL,
+    createServerErrorResponse,
     createServerSuccessResponseGraphQL,
     decodeJWTSafe,
     getProjectionFromInfo,
