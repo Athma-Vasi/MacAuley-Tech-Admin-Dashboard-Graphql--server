@@ -2,10 +2,7 @@ import { model, Schema, type Types } from "mongoose";
 import { ERROR_LOG_EXPIRY } from "../../constants.ts";
 
 type ErrorLogSchema = {
-    method?: string;
-    path?: string;
     headers?: string;
-    body?: string;
     ip?: string;
     userAgent?: string;
     original: string;
@@ -28,19 +25,7 @@ type ErrorLogDocument = ErrorLogSchema & {
 
 const errorLogSchema = new Schema(
     {
-        method: {
-            type: String,
-            required: false,
-        },
-        path: {
-            type: String,
-            required: false,
-        },
         headers: {
-            type: String,
-            required: false,
-        },
-        body: {
             type: String,
             required: false,
         },
@@ -98,12 +83,9 @@ const errorLogSchema = new Schema(
 );
 
 errorLogSchema.index({
-    body: "text",
     headers: "text",
     ip: "text",
     message: "text",
-    method: "text",
-    path: "text",
     sessionId: "text",
     stack: "text",
     userAgent: "text",

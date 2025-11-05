@@ -25,10 +25,20 @@ const userTypeDefs = `#graphql
         updatedAt: String!
     }
 
+    type ServerResponse {
+        accessToken: String!
+        dataBox: [User!]!
+        message: String!
+        statusCode: Int!
+        timestamp: String!
+        totalDocuments: Int
+        totalPages: Int
+    }
+
     type Query {
         getUserByID(id: ID!): User
         getUserByUsername(username: String!): User
-        getUsers: [User!]!
+        getUsers: ServerResponse!
     }
 
     type Mutation {

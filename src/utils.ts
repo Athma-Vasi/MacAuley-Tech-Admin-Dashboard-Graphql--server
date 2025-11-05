@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import type { Buffer } from "node:buffer";
@@ -12,6 +11,7 @@ import {
 import { createNewResourceService } from "./services/index.ts";
 import type {
     DecodedToken,
+    RequestAfterSuccessfulAuth,
     SafeError,
     SafeResult,
     ServerErrorResponseGraphQL,
@@ -21,20 +21,18 @@ const { Err, None, Ok, Some } = tsresults;
 
 function createErrorLogSchema(
     safeErrorResult: ErrImpl<SafeError>,
-    request: Request,
+    request: RequestAfterSuccessfulAuth,
 ): ErrorLogSchema {
     const { message, name, original, stack } = safeErrorResult.val;
-    const { body = {} } = request;
-    const { username = "unknown", userId = "unknown", sessionId = "unknown" } =
-        body;
-    const { headers, ip, method, path } = request;
+    const { headers, decodedToken } = request;
+    const { sessionId, userId, username } = decodedToken;
+    const { ip } = headers;
 
     const errorLog: ErrorLogSchema = {
         message: message,
         name: name,
         stack: stack.none ? "ｶ ｷ ｸ ｹ ｺ ｻ ｼ ｽ" : stack.val,
         original: original.none ? "ｾ ｿ ﾀ ﾁ ﾂ ﾃ ﾄ ﾅ" : original.val,
-        body: serializeSafe(body),
         sessionId: sessionId.toString(),
         userId: userId.toString(),
         username: username,
@@ -52,18 +50,6 @@ function createErrorLogSchema(
             ...PROPERTY_DESCRIPTOR,
         });
     }
-    if (method) {
-        Object.defineProperty(errorLog, "method", {
-            value: method,
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
-    if (path) {
-        Object.defineProperty(errorLog, "path", {
-            value: path,
-            ...PROPERTY_DESCRIPTOR,
-        });
-    }
     if (request.headers["user-agent"]) {
         Object.defineProperty(errorLog, "userAgent", {
             value: request.headers["user-agent"],
@@ -76,7 +62,7 @@ function createErrorLogSchema(
 
 async function handleCatchBlockError(
     error: unknown,
-    request: Request,
+    request: RequestAfterSuccessfulAuth,
 ): Promise<ServerErrorResponseGraphQL> {
     try {
         console.error("handling catch block error: ", error);
@@ -105,7 +91,7 @@ async function handleCatchBlockError(
 
 async function handleErrorResult(
     safeErrorResult: ErrImpl<SafeError>,
-    request: Request,
+    request: RequestAfterSuccessfulAuth,
 ): Promise<ServerErrorResponseGraphQL> {
     try {
         console.error(
@@ -142,14 +128,14 @@ function createServerErrorResponse({
     totalDocuments,
     totalPages,
 }: {
-    request: Request;
+    request: RequestAfterSuccessfulAuth;
     dataBox?: [];
     statusCode?: number;
     message?: string;
     totalDocuments?: number;
     totalPages?: number;
 }): ServerErrorResponseGraphQL {
-    const { accessToken = "" } = request.body;
+    const { accessToken = "" } = request;
     const response: ServerErrorResponseGraphQL = {
         accessToken,
         dataBox,
@@ -178,14 +164,14 @@ function createServerSuccessResponse<Data = unknown>({
     totalDocuments,
     totalPages,
 }: {
-    request: Request;
+    request: RequestAfterSuccessfulAuth;
     dataBox?: Array<Data>;
     statusCode?: number;
     message?: string;
     totalDocuments?: number;
     totalPages?: number;
 }): ServerResponseGraphQL<Data> {
-    const { accessToken = "" } = request.body;
+    const { accessToken = "" } = request;
     const response: ServerResponseGraphQL<Data> = {
         accessToken,
         dataBox,
@@ -268,19 +254,58 @@ function createSafeErrorResult(
     });
 }
 
+/**
+ * Extracts MongoDB projection object from GraphQL query selection info.
+ *
+ * This function analyzes GraphQL field selections and converts them into a MongoDB
+ * projection object format, where each selected field maps to the value 1.
+ * It handles special cases like filtering out server response fields and extracting
+ * nested selections from a "dataBox" field.
+ *
+ * @param info - GraphQL resolve info object containing query field selections
+ * @returns A MongoDB projection object with selected field names as keys and 1 as values
+ *
+ * @remarks
+ * - Filters out server response fields like "accessToken", "message", "statusCode", etc.
+ * - Special handling for "dataBox" field: extracts nested field selections instead of the container
+ * - Only processes GraphQL Field selections, ignoring other selection types
+ * - Uses PROPERTY_DESCRIPTOR for defining projection properties
+ */
 function getProjectionFromInfo(
     info: GraphQLResolveInfo,
 ): Record<string, 1> {
     const { fieldNodes } = info;
     const selections = fieldNodes[0]?.selectionSet?.selections ?? [];
+    const nonProjectionServerResponseFields = new Set([
+        "accessToken",
+        "message",
+        "statusCode",
+        "timestamp",
+        "totalDocuments",
+        "totalPages",
+    ]);
 
     return selections.reduce((projection, selection) => {
         if (selection.kind === "Field") {
             const fieldName = selection.name.value;
-            Object.defineProperty(projection, fieldName, {
-                value: 1,
-                ...PROPERTY_DESCRIPTOR,
-            });
+            if (nonProjectionServerResponseFields.has(fieldName)) {
+                return projection;
+            }
+
+            if (fieldName === "dataBox" && selection.selectionSet) {
+                const dataBoxSelections = selection.selectionSet.selections;
+
+                dataBoxSelections.forEach((dataBoxSelection) => {
+                    if (dataBoxSelection.kind === "Field") {
+                        const dataBoxFieldName = dataBoxSelection.name.value;
+                        Object.defineProperty(projection, dataBoxFieldName, {
+                            value: 1,
+                            ...PROPERTY_DESCRIPTOR,
+                        });
+                    }
+                });
+                return projection;
+            }
         }
 
         return projection;

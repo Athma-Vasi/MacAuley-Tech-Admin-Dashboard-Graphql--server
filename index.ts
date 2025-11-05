@@ -10,6 +10,7 @@ import morgan from "morgan";
 import http from "node:http";
 import { connectDB } from "./src/config/connectDB.ts";
 import { CONFIG } from "./src/config/index.ts";
+import { addTokenToBody } from "./src/middlewares/addTokenToBody.ts";
 import { fileExtensionLimiterMiddleware } from "./src/middlewares/fileExtensionLimiter.ts";
 import { fileInfoExtractorMiddleware } from "./src/middlewares/fileInfoExtractor.ts";
 import { filesPayloadExistsMiddleware } from "./src/middlewares/filePayloadExists.ts";
@@ -79,12 +80,13 @@ try {
         helmet(),
         compression(),
         morgan("dev"),
+        addTokenToBody,
         expressMiddleware(server, {
             // deno-lint-ignore require-await
             context: async ({ req: request }) => {
                 // const token = req.headers.authorization || "";
                 // return { token };
-                return request;
+                return { request };
             },
         }),
     );

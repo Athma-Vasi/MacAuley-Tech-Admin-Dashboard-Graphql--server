@@ -6,6 +6,7 @@ import type {
   RootFilterQuery,
 } from "mongoose";
 import tsresults from "ts-results";
+import { BACK_OFF_FACTOR, DELAY_BASE_MS, MAX_RETRIES } from "../constants.ts";
 import type {
   ArrayOperators,
   FieldOperators,
@@ -61,7 +62,7 @@ async function getResourceByFieldService<
   }
 }
 
-async function getAllResourcesService<
+function getAllResourcesService<
   Doc extends Record<PropertyKey, unknown> = RecordDB,
 >({
   model,
@@ -74,17 +75,49 @@ async function getAllResourcesService<
   projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Array<Doc>>> {
-  try {
-    const resources = await model.find(filter, projection, options)
-      .lean()
-      .exec() as Array<Doc>;
+  async function attempt(retriesLeft: number): Promise<SafeResult<Array<Doc>>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
 
-    return resources.length === 0
-      ? new Ok(None)
-      : createSafeSuccessResult(resources);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+    try {
+      const resources = await model.find(filter, projection, options).lean()
+        .exec() as Array<Doc>;
+
+      return resources.length === 0
+        ? new Ok(None)
+        : createSafeSuccessResult(resources);
+    } catch (_error: unknown) {
+      const backoff = Math.pow(BACK_OFF_FACTOR, MAX_RETRIES - retriesLeft) *
+        DELAY_BASE_MS;
+      const jitter = backoff * 0.2 * (Math.random() - 0.5);
+      const delay = backoff + jitter;
+
+      console.group("Retrying operation...");
+      console.log(`Retries left: ${retriesLeft - 1}`);
+      console.log(`Delay: ${Math.round(delay)} ms`);
+      console.groupEnd();
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          attempt(retriesLeft - 1).then(resolve);
+        }, delay);
+      });
+    }
   }
+
+  return attempt(MAX_RETRIES);
+  // try {
+  //   const resources = await model.find(filter, projection, options)
+  //     .lean()
+  //     .exec() as Array<Doc>;
+
+  //   return resources.length === 0
+  //     ? new Ok(None)
+  //     : createSafeSuccessResult(resources);
+  // } catch (error: unknown) {
+  //   return createSafeErrorResult(error);
+  // }
 }
 
 async function createNewResourceService<

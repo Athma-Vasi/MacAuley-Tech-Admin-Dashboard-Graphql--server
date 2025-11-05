@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import { CONFIG } from "../../config/index.ts";
 import {
     ACCESS_TOKEN_EXPIRY,
@@ -12,7 +11,11 @@ import {
     getResourceByFieldService,
     updateResourceByIdService,
 } from "../../services/index.ts";
-import type { ServerResponseGraphQL } from "../../types.ts";
+import type {
+    RequestAfterSuccessfulAuth,
+    RequestBeforeAuth,
+    ServerResponseGraphQL,
+} from "../../types.ts";
 import {
     compareHashedStringWithPlainStringSafe,
     createServerErrorResponse,
@@ -25,7 +28,7 @@ import {
     signJWTSafe,
     verifyJWTSafe,
 } from "../../utils.ts";
-import { FileUploadModel, type FileUploadSchema } from "../fileUpload/model.ts";
+import { FileUploadModel } from "../fileUpload/model.ts";
 import {
     type UserDocument,
     UserModel,
@@ -40,10 +43,9 @@ const authResolvers = {
         checkUsernameOrEmailExists: async (
             _: unknown,
             args: { username?: string; email?: string },
-            context: { request: Request },
-        ): Promise<ServerResponseGraphQL<boolean>> => {
+            _context: { request: RequestBeforeAuth },
+        ): Promise<boolean | null> => {
             try {
-                const { request } = context;
                 console.log(
                     "Checking if username or email exists at register:",
                     args.username,
@@ -56,42 +58,16 @@ const authResolvers = {
                     options: {},
                 });
                 if (existingUserResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            existingUserResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
-                    return createServerSuccessResponse({
-                        request,
-                        statusCode: 200,
-                    });
+                    return true;
                 }
 
-                return createServerErrorResponse({
-                    request,
-                    statusCode: 404,
-                });
-            } catch (error: unknown) {
-                try {
-                    return await handleCatchBlockError(
-                        error,
-                        context.request,
-                    );
-                } catch (_error: unknown) {
-                    return createServerErrorResponse({
-                        request: context.request,
-                        statusCode: 500,
-                    });
-                }
+                return false;
+            } catch (_error: unknown) {
+                return null;
             }
         },
     },
@@ -100,11 +76,11 @@ const authResolvers = {
         registerUser: async (
             _: unknown,
             args: UserSchema,
-            context: { request: Request },
-        ): Promise<ServerResponseGraphQL<boolean>> => {
+            context: {
+                request: RequestBeforeAuth & { fileUploads: Array<File> };
+            },
+        ): Promise<boolean | null> => {
             try {
-                const { request } = context;
-
                 console.log(
                     "Registering new user:",
                     args.username,
@@ -115,24 +91,11 @@ const authResolvers = {
                     stringToHash: args.password,
                 });
                 if (hashPasswordResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            hashPasswordResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const hashedPasswordMaybe = hashPasswordResult.safeUnwrap();
                 if (hashedPasswordMaybe.none) {
-                    return createServerErrorResponse({
-                        request,
-                        statusCode: 500,
-                    });
+                    return null;
                 }
                 const hashedPassword = hashedPasswordMaybe.safeUnwrap();
 
@@ -146,29 +109,16 @@ const authResolvers = {
                     UserModel,
                 );
                 if (createUserResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            createUserResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const createdUserMaybe = createUserResult.safeUnwrap();
                 if (createdUserMaybe.none) {
-                    return createServerErrorResponse({
-                        request,
-                        statusCode: 500,
-                    });
+                    return null;
                 }
                 const createdUserDocument = createdUserMaybe.safeUnwrap();
 
-                const { fileUploads } = context.request.body;
-                const fileUploadSchema: FileUploadSchema = {
+                const { fileUploads } = context.request;
+                const fileUploadSchema = {
                     ...fileUploads[0],
                     associatedDocumentId: createdUserDocument._id,
                     userId: createdUserDocument._id,
@@ -180,25 +130,12 @@ const authResolvers = {
                     FileUploadModel,
                 );
                 if (createFileUploadResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            createFileUploadResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const createdFileUploadMaybe = createFileUploadResult
                     .safeUnwrap();
                 if (createdFileUploadMaybe.none) {
-                    return createServerErrorResponse({
-                        request,
-                        statusCode: 500,
-                    });
+                    return null;
                 }
                 const createdFileUploadDocument = createdFileUploadMaybe
                     .safeUnwrap();
@@ -214,25 +151,12 @@ const authResolvers = {
                         updateOperator: "$set",
                     });
                 if (updateUserDocumentResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            updateUserDocumentResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const updatedUserMaybe = updateUserDocumentResult
                     .safeUnwrap();
                 if (updatedUserMaybe.none) {
-                    return createServerErrorResponse({
-                        request,
-                        statusCode: 500,
-                    });
+                    return null;
                 }
                 const updatedUserDocument = updatedUserMaybe.safeUnwrap();
 
@@ -247,25 +171,12 @@ const authResolvers = {
                     updateOperator: "$set",
                 });
                 if (updateFileUploadResult.err) {
-                    try {
-                        return await handleErrorResult(
-                            updateFileUploadResult,
-                            request,
-                        );
-                    } catch (_error: unknown) {
-                        return createServerErrorResponse({
-                            request,
-                            statusCode: 500,
-                        });
-                    }
+                    return null;
                 }
                 const updatedFileUploadMaybe = updateFileUploadResult
                     .safeUnwrap();
                 if (updatedFileUploadMaybe.none) {
-                    return createServerErrorResponse({
-                        request,
-                        statusCode: 500,
-                    });
+                    return null;
                 }
 
                 console.log(
@@ -273,29 +184,17 @@ const authResolvers = {
                     createdUserDocument.username,
                 );
 
-                return createServerSuccessResponse({
-                    request,
-                    dataBox: [true],
-                });
+                return true;
             } catch (error: unknown) {
-                try {
-                    return await handleCatchBlockError(
-                        error,
-                        context.request,
-                    );
-                } catch (_error: unknown) {
-                    return createServerErrorResponse({
-                        request: context.request,
-                        statusCode: 500,
-                    });
-                }
+                console.error("Error in registerUser resolver:", error);
+                return null;
             }
         },
 
         loginUser: async (
             _: unknown,
             args: { username: string; password: string },
-            context: { request: Request },
+            context: { request: RequestAfterSuccessfulAuth },
         ): Promise<ServerResponseGraphQL<Omit<UserDocument, "password">>> => {
             try {
                 const { request } = context;
@@ -362,12 +261,16 @@ const authResolvers = {
 
                 const { ACCESS_TOKEN_SEED } = CONFIG;
 
+                const addressIP = typeof request.headers["ip"] === "string"
+                    ? request.headers["ip"]
+                    : request.headers["ip"]?.join(",") ?? "unknown";
+
                 // create auth session (without token yet)
                 const authSessionSchema: AuthSchema = {
-                    addressIP: request.ip ?? "unknown",
+                    addressIP,
                     currentlyActiveToken: "notAToken",
                     expireAt: new Date(AUTH_SESSION_EXPIRY), // 24 hours
-                    userAgent: request.get("User-Agent") ?? "unknown",
+                    userAgent: request.headers["user-agent"] ?? "unknown",
                     userId: userDocument._id,
                     username: userDocument.username,
                 };
@@ -439,7 +342,7 @@ const authResolvers = {
                 const updateSessionResult = await updateResourceByIdService({
                     updateFields: {
                         currentlyActiveToken: accessToken,
-                        ip: request.ip ?? "unknown",
+                        ip: request.headers["ip"] ?? "unknown",
                         userAgent: request.headers["user-agent"] ??
                             "unknown",
                     },
@@ -502,7 +405,7 @@ const authResolvers = {
         logoutUser: async (
             _: unknown,
             args: { accessToken: string },
-            context: { request: Request },
+            context: { request: RequestAfterSuccessfulAuth },
         ): Promise<ServerResponseGraphQL<boolean>> => {
             try {
                 const { request } = context;

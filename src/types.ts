@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import type { Buffer } from "node:buffer";
+import type { IncomingMessage } from "node:http";
 import type { Option, Result } from "ts-results";
 
 type StoreLocation = "Calgary" | "Edmonton" | "Vancouver";
@@ -18,6 +19,17 @@ type DecodedToken = {
     exp: number;
 };
 
+type RequestBeforeAuth = IncomingMessage;
+
+type RequestAfterSuccessfulAuth = IncomingMessage & {
+    accessToken: string;
+    decodedToken: DecodedToken;
+};
+
+// after file info extractor middleware runs
+type RequestWithFileUploads = IncomingMessage & {
+    fileUploads: FileInfoObject[];
+};
 type ServerSuccessResponseGraphQL<Data = unknown> = {
     accessToken: string;
     dataBox: Array<Data>;
@@ -65,36 +77,6 @@ type SafeError = {
     original: Option<string>;
 };
 type SafeResult<Data = unknown> = Result<Option<NonNullable<Data>>, SafeError>;
-type ResponseKind = "error" | "success";
-type OptionalPayload = {
-    accessToken?: string;
-    message?: string;
-    pages?: number;
-    status?: number;
-    totalDocuments?: number;
-    triggerLogout?: boolean;
-};
-type SuccessPayload<Data = unknown> = Prettify<
-    OptionalPayload & {
-        data: Array<NonNullable<Data>>;
-        kind: "success"; // or empty: data = []
-    }
->;
-type ErrorPayload = Prettify<
-    OptionalPayload & {
-        data: [];
-        kind: "error";
-        message: string;
-    }
->;
-
-type ResponsePayload<Data = unknown> =
-    | SuccessPayload<Data>
-    | ErrorPayload;
-
-// type HttpServerResponse<Data = unknown> = Prettify<
-//     Response<ResponsePayload<Data>>
-// >;
 
 // gives the final flattened type after mapping, intersecting, or conditional logic
 type Prettify<T> =
@@ -175,20 +157,19 @@ export type {
     ArrayOperators,
     DecodedToken,
     DocumentUpdateOperation,
-    ErrorPayload,
     FieldOperators,
     FileInfoObject,
     FileUploadObject,
     Prettify,
     RecordDB,
-    ResponseKind,
-    ResponsePayload,
+    RequestAfterSuccessfulAuth,
+    RequestBeforeAuth,
+    RequestWithFileUploads,
     SafeError,
     SafeResult,
     ServerErrorResponseGraphQL,
     ServerResponseGraphQL,
     ServerSuccessResponseGraphQL,
     StoreLocation,
-    SuccessPayload,
     UserRoles,
 };

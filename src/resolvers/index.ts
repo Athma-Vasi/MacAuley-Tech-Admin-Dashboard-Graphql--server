@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import type { GraphQLResolveInfo } from "graphql";
 import type { Model } from "mongoose";
 import { PROPERTY_DESCRIPTOR } from "../constants.ts";
@@ -10,7 +9,11 @@ import {
     getResourceByIdService,
     updateResourceByIdService,
 } from "../services/index.ts";
-import type { RecordDB, ServerResponseGraphQL } from "../types.ts";
+import type {
+    RecordDB,
+    RequestAfterSuccessfulAuth,
+    ServerResponseGraphQL,
+} from "../types.ts";
 import {
     createServerErrorResponse,
     createServerSuccessResponse,
@@ -38,8 +41,8 @@ function getAllResourcesResolver<
         >,
     >(
         _parent: unknown,
-        args: Arguments,
-        context: { request: Request },
+        _args: Arguments,
+        context: { request: RequestAfterSuccessfulAuth },
         info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
@@ -51,8 +54,7 @@ function getAllResourcesResolver<
             console.group("Handling get all resources...");
             console.log(
                 _parent,
-                args,
-                context,
+                _args,
                 projection,
             );
             console.groupEnd();
@@ -64,6 +66,7 @@ function getAllResourcesResolver<
                 projection,
             });
             if (resourcesResult.err) {
+                console.log("resourcesResult error");
                 try {
                     return await handleErrorResult(
                         resourcesResult,
@@ -78,6 +81,7 @@ function getAllResourcesResolver<
             }
             const resourcesMaybe = resourcesResult.safeUnwrap();
             if (resourcesMaybe.none) {
+                console.log("resourcesMaybe none");
                 return createServerErrorResponse({
                     request,
                     statusCode: 404,
@@ -85,11 +89,16 @@ function getAllResourcesResolver<
             }
             const resources = resourcesMaybe.safeUnwrap();
 
+            resources.forEach((resource) => {
+                console.log("resource retrieved:", resource);
+            });
+
             return createServerSuccessResponse({
                 request,
                 dataBox: resources,
             });
         } catch (error: unknown) {
+            console.log("catch block error");
             try {
                 return await handleCatchBlockError(
                     error,
@@ -117,7 +126,7 @@ function getResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { request: Request },
+        context: { request: RequestAfterSuccessfulAuth },
         info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
@@ -210,7 +219,7 @@ function getResourceByFieldResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { request: Request },
+        context: { request: RequestAfterSuccessfulAuth },
         info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<NonNullable<Partial<Resource>>>> {
         try {
@@ -295,7 +304,7 @@ function createNewResourceResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { request: Request },
+        context: { request: RequestAfterSuccessfulAuth },
         _info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<NonNullable<Resource>>> {
         try {
@@ -366,7 +375,7 @@ function updateResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { request: Request },
+        context: { request: RequestAfterSuccessfulAuth },
         _info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<NonNullable<Resource>>> {
         try {
@@ -442,7 +451,7 @@ function deleteResourceByIdResolver<
     >(
         _parent: unknown,
         args: Arguments,
-        context: { request: Request },
+        context: { request: RequestAfterSuccessfulAuth },
         _info: GraphQLResolveInfo,
     ): Promise<ServerResponseGraphQL<boolean>> {
         try {
