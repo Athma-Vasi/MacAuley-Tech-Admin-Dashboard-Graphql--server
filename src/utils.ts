@@ -4,7 +4,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import type { Buffer } from "node:buffer";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR, STATUS_DESCRIPTION_TABLE } from "./constants.ts";
-import type { AppErrorBase } from "./error/index.ts";
+import { AppErrorBase } from "./error/index.ts";
 import {
     ErrorLogModel,
     type ErrorLogSchema,
@@ -25,19 +25,20 @@ function createErrorLogSchema(
     safeErrorResult: ErrImpl<SafeError>,
     request: RequestAfterSuccessfulAuth,
 ): ErrorLogSchema {
-    const { message, name, original, stack } = safeErrorResult.val;
+    const { message, name, original, stack, timestamp } = safeErrorResult.val;
     const { headers, decodedToken } = request;
     const { sessionId, userId, username } = decodedToken;
     const { ip } = headers;
 
     const errorLog: ErrorLogSchema = {
-        message: message,
-        name: name,
+        message,
+        name,
         stack: stack.none ? "ｶ ｷ ｸ ｹ ｺ ｻ ｼ ｽ" : stack.val,
         original: original.none ? "ｾ ｿ ﾀ ﾁ ﾂ ﾃ ﾄ ﾅ" : original.val,
         sessionId: sessionId.toString(),
         userId: userId.toString(),
-        username: username,
+        username,
+        timestamp,
     };
 
     if (headers) {
@@ -241,8 +242,46 @@ function serializeSafe(data: unknown): string {
 }
 
 function createSafeErrorResult(
-    error: AppErrorBase<unknown>,
-): ErrImpl<SafeError> {}
+    error: AppErrorBase | unknown,
+): ErrImpl<SafeError> {
+    if (error instanceof AppErrorBase) {
+        return new Err({
+            name: error.name,
+            message: error.message,
+            stack: Some(error.stack),
+            original: None,
+            timestamp: error.timestamp,
+        });
+    }
+
+    if (error instanceof Error) {
+        return new Err({
+            name: error.name ?? "Error",
+            message: error.message ?? "Unknown error",
+            stack: error.stack == null ? None : Some(error.stack),
+            original: None,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    if (typeof error === "string") {
+        return new Err({
+            name: "Error",
+            message: error,
+            stack: None,
+            original: None,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    return new Err({
+        name: "SimulationDysfunction",
+        message: "You've seen it before. Déjà vu. Something's off...",
+        stack: None,
+        original: Some(serializeSafe(error)),
+        timestamp: new Date().toISOString(),
+    });
+}
 
 // function createSafeErrorResult(
 //     error: unknown,

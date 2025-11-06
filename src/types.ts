@@ -75,6 +75,7 @@ type SafeError = {
     message: string;
     stack: Option<string>;
     original: Option<string>;
+    timestamp: string;
 };
 type SafeResult<Data = unknown> = Result<Option<NonNullable<Data>>, SafeError>;
 

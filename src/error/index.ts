@@ -39,7 +39,7 @@ abstract class AppErrorBase<
     public readonly message: string;
     public readonly info: ErrInfo;
     public readonly stack: string;
-    public readonly timestamp: Date;
+    public readonly timestamp: string;
 
     constructor(
         name: string,
@@ -57,7 +57,7 @@ abstract class AppErrorBase<
         this.stack = info.err && info.stack
             ? info.stack
             : "Stack not available";
-        this.timestamp = new Date();
+        this.timestamp = new Date().toISOString();
     }
 }
 

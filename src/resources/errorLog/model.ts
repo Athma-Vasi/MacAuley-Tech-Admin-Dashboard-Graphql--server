@@ -13,7 +13,7 @@ type ErrorLogSchema = {
     message: string;
     name: string;
     stack: string;
-    timestamp?: Date;
+    timestamp: string;
 };
 
 type ErrorLogDocument = ErrorLogSchema & {
@@ -74,9 +74,9 @@ const errorLogSchema = new Schema(
             required: [true, "Stack is required"],
         },
         timestamp: {
-            type: Date,
+            type: String,
             required: false,
-            default: Date.now(),
+            default: new Date().toISOString(),
         },
     },
     { timestamps: true },
