@@ -248,9 +248,9 @@ function createSafeErrorResult(
         return new Err({
             name: error.name,
             message: error.message,
-            stack: Some(error.stack),
+            stack: None,
             original: None,
-            timestamp: error.timestamp,
+            timestamp: new Date().toISOString(),
         });
     }
 
