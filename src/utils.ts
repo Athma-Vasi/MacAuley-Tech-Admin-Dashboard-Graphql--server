@@ -4,7 +4,14 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import type { Buffer } from "node:buffer";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR, STATUS_DESCRIPTION_TABLE } from "./constants.ts";
-import { AppErrorBase, HashComparisonError } from "./errors/index.ts";
+import {
+    AppErrorBase,
+    HashComparisonError,
+    HashGenerationError,
+    TokenDecodeError,
+    TokenSignatureError,
+    TokenVerificationError,
+} from "./errors/index.ts";
 import {
     ErrorLogModel,
     type ErrorLogSchema,
@@ -383,7 +390,7 @@ async function compareHashedStringWithPlainStringSafe({
         const isMatch = await bcrypt.compare(plainString, hashedString);
         return createSafeSuccessResult(isMatch);
     } catch (error: unknown) {
-        return createSafeErrorResult(new HashComparisonError());
+        return createSafeErrorResult(new HashComparisonError(error));
     }
 }
 
@@ -395,7 +402,7 @@ async function hashStringSafe({ saltRounds, stringToHash }: {
         const hashedString = await bcrypt.hash(stringToHash, saltRounds);
         return createSafeSuccessResult(hashedString);
     } catch (error: unknown) {
-        return createSafeErrorResult(error);
+        return createSafeErrorResult(new HashGenerationError(error));
     }
 }
 
@@ -408,7 +415,7 @@ function decodeJWTSafe(
             | null;
         return createSafeSuccessResult(decoded);
     } catch (error: unknown) {
-        return createSafeErrorResult(error);
+        return createSafeErrorResult(new TokenDecodeError(error));
     }
 }
 
@@ -424,7 +431,7 @@ function verifyJWTSafe(
     } catch (error: unknown) {
         return error instanceof Error && error?.name === "TokenExpiredError"
             ? new Ok(None)
-            : createSafeErrorResult(error);
+            : createSafeErrorResult(new TokenVerificationError(error));
     }
 }
 
@@ -437,7 +444,7 @@ function signJWTSafe({ payload, secretOrPrivateKey, options }: {
         const token = jwt.sign(payload, secretOrPrivateKey, options);
         return createSafeSuccessResult(token);
     } catch (error: unknown) {
-        return createSafeErrorResult(error);
+        return createSafeErrorResult(new TokenSignatureError(error));
     }
 }
 

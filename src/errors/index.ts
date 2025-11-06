@@ -22,8 +22,8 @@ class AuthError extends AppErrorBase {
     readonly _tag = "AuthError";
 
     constructor(
-        message = "Authentication error occurred",
         error?: unknown,
+        message = "Authentication error occurred",
     ) {
         super(
             "AuthError",
@@ -39,7 +39,7 @@ class AuthError extends AppErrorBase {
 class ValidationError extends AppErrorBase {
     readonly _tag = "ValidationError";
 
-    constructor(message = "Validation error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "Validation error occurred") {
         super(
             "ValidationError",
             error instanceof Error ? error.name : "UnknownError",
@@ -55,8 +55,8 @@ class DatabaseError extends AppErrorBase {
     readonly _tag = "DatabaseError";
 
     constructor(
-        message = "Database error occurred",
         error?: unknown,
+        message = "Database error occurred",
     ) {
         super(
             "DatabaseError",
@@ -72,7 +72,7 @@ class DatabaseError extends AppErrorBase {
 class NotFoundError extends AppErrorBase {
     readonly _tag = "NotFoundError";
 
-    constructor(message = "Resource not found", error?: unknown) {
+    constructor(error?: unknown, message = "Resource not found") {
         super(
             "NotFoundError",
             error instanceof Error ? error.name : "UnknownError",
@@ -87,7 +87,7 @@ class NotFoundError extends AppErrorBase {
 class NetworkError extends AppErrorBase {
     readonly _tag = "NetworkError";
 
-    constructor(message = "Network error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "Network error occurred") {
         super(
             "NetworkError",
             error instanceof Error ? error.name : "UnknownError",
@@ -102,9 +102,45 @@ class NetworkError extends AppErrorBase {
 class TokenDecodeError extends AppErrorBase {
     readonly _tag = "TokenDecodeError";
 
-    constructor(message = "Token decoding error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "Token decoding error occurred") {
         super(
             "TokenDecodeError",
+            error instanceof Error ? error.name : "UnknownError",
+            error instanceof Error && error.stack
+                ? error.stack
+                : "Stack trace not available",
+            message,
+        );
+    }
+}
+
+class TokenVerificationError extends AppErrorBase {
+    readonly _tag = "TokenVerificationError";
+
+    constructor(
+        error?: unknown,
+        message = "Token verification error occurred",
+    ) {
+        super(
+            "TokenVerificationError",
+            error instanceof Error ? error.name : "UnknownError",
+            error instanceof Error && error.stack
+                ? error.stack
+                : "Stack trace not available",
+            message,
+        );
+    }
+}
+
+class TokenSignatureError extends AppErrorBase {
+    readonly _tag = "TokenSignatureError";
+
+    constructor(
+        error?: unknown,
+        message = "Token signature error occurred",
+    ) {
+        super(
+            "TokenSignatureError",
             error instanceof Error ? error.name : "UnknownError",
             error instanceof Error && error.stack
                 ? error.stack
@@ -117,7 +153,7 @@ class TokenDecodeError extends AppErrorBase {
 class TimeoutError extends AppErrorBase {
     readonly _tag = "TimeoutError";
 
-    constructor(message = "Operation timed out", error?: unknown) {
+    constructor(error?: unknown, message = "Operation timed out") {
         super(
             "TimeoutError",
             error instanceof Error ? error.name : "UnknownError",
@@ -147,7 +183,7 @@ class PromiseRejectionError extends AppErrorBase {
 class RetryLimitExceededError extends AppErrorBase {
     readonly _tag = "RetryLimitExceededError";
 
-    constructor(message = "Retry limit exceeded", error?: unknown) {
+    constructor(error?: unknown, message = "Retry limit exceeded") {
         super(
             "RetryLimitExceededError",
             error instanceof Error ? error.name : "UnknownError",
@@ -162,7 +198,7 @@ class RetryLimitExceededError extends AppErrorBase {
 class HashComparisonError extends AppErrorBase {
     readonly _tag = "HashComparisonError";
 
-    constructor(message = "Hash comparison error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "Hash comparison error occurred") {
         super(
             "HashComparisonError",
             error instanceof Error ? error.name : "UnknownError",
@@ -177,7 +213,7 @@ class HashComparisonError extends AppErrorBase {
 class HashGenerationError extends AppErrorBase {
     readonly _tag = "HashGenerationError";
 
-    constructor(message = "Hash generation error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "Hash generation error occurred") {
         super(
             "HashGenerationError",
             error instanceof Error ? error.name : "UnknownError",
@@ -192,7 +228,7 @@ class HashGenerationError extends AppErrorBase {
 class UnknownError extends AppErrorBase {
     readonly _tag = "UnknownError";
 
-    constructor(message = "An unknown error occurred", error?: unknown) {
+    constructor(error?: unknown, message = "An unknown error occurred") {
         super(
             "UnknownError",
             error instanceof Error ? error.name : "UnknownError",
@@ -216,6 +252,8 @@ export {
     RetryLimitExceededError,
     TimeoutError,
     TokenDecodeError,
+    TokenSignatureError,
+    TokenVerificationError,
     UnknownError,
     ValidationError,
 };
