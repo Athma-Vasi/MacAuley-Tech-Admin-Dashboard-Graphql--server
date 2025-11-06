@@ -1,5 +1,3 @@
-import type { Err, ErrImpl } from "ts-results";
-
 /**
  * Abstract base class for application-specific error handling.
  *
@@ -30,114 +28,94 @@ import type { Err, ErrImpl } from "ts-results";
  * @property {string} stack - Stack trace information, falls back to "Stack not available" if unavailable
  * @property {Date} timestamp - When the error occurred, automatically set during construction
  */
-abstract class AppErrorBase<
-    E extends string | unknown = string,
-    ErrInfo extends ErrImpl<E> = ErrImpl<E>,
-> {
+abstract class AppErrorBase {
     abstract readonly _tag: string;
     public readonly name: string;
     public readonly message: string;
-    public readonly info: ErrInfo;
-    public readonly stack: string;
-    public readonly timestamp: string;
 
-    constructor(
-        name: string,
-        info: ErrInfo,
-    ) {
+    constructor(name: string, message: string) {
         this.name = name;
-        this.info = info;
-        this.message = info.err && info.val
-            ? typeof info.val === "string"
-                ? info.val
-                : info.val instanceof Error
-                ? info.val.message
-                : JSON.stringify(info.val)
-            : "No additional error message provided";
-        this.stack = info.err && info.stack
-            ? info.stack
-            : "Stack not available";
-        this.timestamp = new Date().toISOString();
+        this.message = message;
     }
 }
 
-class AuthError extends AppErrorBase<string> {
+class AuthError extends AppErrorBase {
     readonly _tag = "AuthError";
 
-    constructor(info: Err<string>) {
-        super("AuthError", info);
+    constructor(message = "Authentication error occurred") {
+        super("AuthError", message);
     }
 }
 
-class ValidationError extends AppErrorBase<string> {
+class ValidationError extends AppErrorBase {
     readonly _tag = "ValidationError";
 
-    constructor(info: Err<string>) {
-        super("ValidationError", info);
+    constructor(message = "Validation error occurred") {
+        super("ValidationError", message);
     }
 }
 
-class DatabaseError extends AppErrorBase<string> {
+class DatabaseError extends AppErrorBase {
     readonly _tag = "DatabaseError";
 
-    constructor(info: Err<string>) {
-        super("DatabaseError", info);
+    constructor(message = "Database error occurred") {
+        super("DatabaseError", message);
     }
 }
 
-class NotFoundError extends AppErrorBase<string> {
+class NotFoundError extends AppErrorBase {
     readonly _tag = "NotFoundError";
 
-    constructor(info: Err<string>) {
-        super("NotFoundError", info);
+    constructor(message = "Resource not found") {
+        super("NotFoundError", message);
     }
 }
 
-class NetworkError extends AppErrorBase<string> {
+class NetworkError extends AppErrorBase {
     readonly _tag = "NetworkError";
 
-    constructor(info: Err<string>) {
-        super("NetworkError", info);
+    constructor(message = "Network error occurred") {
+        super("NetworkError", message);
     }
 }
 
-class TokenDecodeError extends AppErrorBase<string> {
+class TokenDecodeError extends AppErrorBase {
     readonly _tag = "TokenDecodeError";
 
-    constructor(info: Err<string>) {
-        super("TokenDecodeError", info);
+    constructor(message = "Token decoding error occurred") {
+        super("TokenDecodeError", message);
     }
 }
 
-class TimeoutError extends AppErrorBase<string> {
+class TimeoutError extends AppErrorBase {
     readonly _tag = "TimeoutError";
 
-    constructor(info: Err<string>) {
-        super("TimeoutError", info);
+    constructor(message = "Operation timed out") {
+        super("TimeoutError", message);
     }
 }
 
-class PromiseRejectionError extends AppErrorBase<unknown> {
+class PromiseRejectionError extends AppErrorBase {
     readonly _tag = "PromiseRejectionError";
 
-    constructor(info: Err<unknown>) {
-        super("PromiseRejectionError", info);
+    constructor(message = "Unhandled promise rejection") {
+        super("PromiseRejectionError", message);
     }
 }
 
-class RetryLimitExceededError extends AppErrorBase<string> {
+class RetryLimitExceededError extends AppErrorBase {
     readonly _tag = "RetryLimitExceededError";
 
-    constructor(info: Err<string>) {
-        super("RetryLimitExceededError", info);
+    constructor(message = "Retry limit exceeded") {
+        super("RetryLimitExceededError", message);
     }
 }
 
-class UnknownError extends AppErrorBase<unknown> {
+class UnknownError extends AppErrorBase {
     readonly _tag = "UnknownError";
 
-    constructor(info: Err<unknown>) {
-        super("UnknownError", info);
+    constructor(message = "An unknown error occurred") {
+        super("UnknownError", message);
     }
 }
 

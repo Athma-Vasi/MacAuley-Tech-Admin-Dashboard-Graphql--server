@@ -85,7 +85,9 @@ async function getResourceByFieldService<
 }): Promise<SafeResult<Doc>> {
   async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -121,7 +123,9 @@ async function getAllResourcesService<
 }): Promise<SafeResult<Array<Doc>>> {
   async function retry(retriesLeft: number): Promise<SafeResult<Array<Doc>>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -148,7 +152,9 @@ async function createNewResourceService<
 ): Promise<SafeResult<Doc>> {
   async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -176,7 +182,9 @@ async function getTotalResourcesService<
 ): Promise<SafeResult<number>> {
   async function retry(retriesLeft: number): Promise<SafeResult<number>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -210,7 +218,9 @@ async function updateResourceByIdService<
 }): Promise<SafeResult<Doc>> {
   async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -245,7 +255,9 @@ async function deleteResourceByIdService<
 ): Promise<SafeResult<boolean>> {
   async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
@@ -277,7 +289,9 @@ async function deleteManyResourcesService<
 ): Promise<SafeResult<boolean>> {
   async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {
