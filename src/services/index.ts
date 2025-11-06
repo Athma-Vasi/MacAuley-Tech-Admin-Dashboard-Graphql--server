@@ -6,7 +6,7 @@ import type {
   RootFilterQuery,
 } from "mongoose";
 import tsresults from "ts-results";
-import { RetryLimitExceededError } from "../error/index.ts";
+import { RetryLimitExceededError } from "../errors/index.ts";
 import type {
   ArrayOperators,
   FieldOperators,
