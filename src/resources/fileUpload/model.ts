@@ -1,6 +1,6 @@
 import { model, Schema, type Types } from "mongoose";
 import { Buffer } from "node:buffer";
-import { FILE_UPLOAD_EXPIRY } from "../../constants";
+import { FILE_UPLOAD_EXPIRY } from "../../constants.ts";
 
 type FileExtension = "jpeg" | "png" | "jpg" | "webp";
 

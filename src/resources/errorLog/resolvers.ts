@@ -11,7 +11,7 @@ import { ErrorLogModel } from "./model.ts";
 const errorLogResolvers = {
     Query: {
         getAllErrorLogs: getAllResourcesResolver(ErrorLogModel),
-        getErrorLogByID: getResourceByIdResolver(ErrorLogModel),
+        getErrorLogById: getResourceByIdResolver(ErrorLogModel),
         getErrorLogByField: getResourceByFieldResolver(ErrorLogModel),
     },
 

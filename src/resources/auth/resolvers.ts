@@ -4,7 +4,10 @@ import {
     AUTH_SESSION_EXPIRY,
     HASH_SALT_ROUNDS,
 } from "../../constants.ts";
-import { getResourceByIdResolver } from "../../resolvers/index.ts";
+import {
+    getAllResourcesResolver,
+    getResourceByIdResolver,
+} from "../../resolvers/index.ts";
 import {
     createNewResourceService,
     deleteResourceByIdService,
@@ -40,6 +43,8 @@ import { AuthModel, type AuthSchema } from "./model.ts";
 
 const authResolvers = {
     Query: {
+        getAllAuthSessions: getAllResourcesResolver(AuthModel),
+
         getAuthSessionById: getResourceByIdResolver(AuthModel),
 
         checkUsernameOrEmailExists: async (

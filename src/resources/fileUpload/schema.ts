@@ -15,9 +15,19 @@ const fileUploadTypeDefs = `#graphql
         updatedAt: String!
     }
 
+    type FileUploadServerResponse {
+        accessToken: String!
+        dataBox: [FileUpload]!
+        message: String!
+        statusCode: Int!
+        timestamp: String!
+        totalDocuments: Int
+        totalPages: Int
+    }
+
     type Query {
-        getFileUploadById(_id: ID!): FileUpload
-        getAllFileUploads: [FileUpload!]!
+        getFileUploadById(_id: ID!): FileUploadServerResponse!
+        getAllFileUploads: FileUploadServerResponse!
     }
 
     type Mutation {
@@ -31,8 +41,8 @@ const fileUploadTypeDefs = `#graphql
             fileMimeType: String!
             fileEncoding: String!
             expireAt: String
-        ): FileUpload!
-        deleteFileUploadById(id: ID!): Boolean!
+        ): FileUploadServerResponse!
+        deleteFileUploadById(id: ID!): FileUploadServerResponse!
     }
 `;
 

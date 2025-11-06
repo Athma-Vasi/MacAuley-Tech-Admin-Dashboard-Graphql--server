@@ -20,10 +20,20 @@ const errorLogTypeDefs = `#graphql
         updatedAt: String!
     }
 
+    type ErrorLogServerResponse {
+        accessToken: String!
+        dataBox: [ErrorLog]!
+        message: String!
+        statusCode: Int!
+        timestamp: String!
+        totalDocuments: Int
+        totalPages: Int
+    }
+
     type Query {
-        getAllErrorLogs: [ErrorLog!]!
-        getErrorLogById(id: ID!): ErrorLog
-        getErrorLogByField(field: String!, value: String!): ErrorLog
+        getAllErrorLogs: ErrorLogServerResponse!
+        getErrorLogById(id: ID!): ErrorLogServerResponse!
+        getErrorLogByField(field: String!, value: String!): ErrorLogServerResponse!
     }
     
     type Mutation {
@@ -43,7 +53,7 @@ const errorLogTypeDefs = `#graphql
             name: String!
             stack: String!
             timestamp: String
-        ): ErrorLog!
+        ): ErrorLogServerResponse!        
 
         updateErrorLogById(
             id: ID!
@@ -62,9 +72,9 @@ const errorLogTypeDefs = `#graphql
             name: String
             stack: String
             timestamp: String
-        ): ErrorLog!
+        ): ErrorLogServerResponse!
 
-        deleteErrorLogById(id: ID!): Boolean!
+        deleteErrorLogById(id: ID!): ErrorLogServerResponse!
     }
 `;
 

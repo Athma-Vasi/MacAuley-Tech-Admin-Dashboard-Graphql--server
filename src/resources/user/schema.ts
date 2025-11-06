@@ -25,9 +25,9 @@ const userTypeDefs = `#graphql
         updatedAt: String!
     }
 
-    type ServerResponse {
+    type UserServerResponse {
         accessToken: String!
-        dataBox: [User!]!
+        dataBox: [User]!
         message: String!
         statusCode: Int!
         timestamp: String!
@@ -36,9 +36,9 @@ const userTypeDefs = `#graphql
     }
 
     type Query {
-        getUserByID(id: ID!): ServerResponse!
-        getUserByUsername(username: String!): ServerResponse!
-        getUsers: ServerResponse!
+        getUserByID(id: ID!): UserServerResponse!
+        getUserByUsername(username: String!): UserServerResponse!
+        getUsers: UserServerResponse!
     }
 
     type Mutation {
@@ -63,9 +63,9 @@ const userTypeDefs = `#graphql
             state: String!
             storeLocation: String!
             username: String!
-        ): User!
+        ): UserServerResponse!
 
-        deleteUserById(id: ID!): Boolean!
+        deleteUserById(id: ID!): UserServerResponse!
 
         updateUserById(
             id: ID!
@@ -89,7 +89,7 @@ const userTypeDefs = `#graphql
             state: String
             storeLocation: String
             username: String
-        ): User!
+        ): UserServerResponse!
     }
 `;
 

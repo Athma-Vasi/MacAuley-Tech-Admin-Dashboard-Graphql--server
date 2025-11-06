@@ -469,6 +469,29 @@ function removeFieldFromObject<
     return rest;
 }
 
+function mergeResolvers(
+    // deno-lint-ignore no-explicit-any
+    resolversArray: Array<any>,
+) {
+    return resolversArray.reduce((merged, resolver) => {
+        const { Query: resolverQuery, Mutation: resolverMutation } = resolver;
+
+        merged.Query = {
+            ...merged.Query,
+            ...resolverQuery,
+        };
+        merged.Mutation = {
+            ...merged.Mutation,
+            ...resolverMutation,
+        };
+
+        return merged;
+    }, {
+        Query: Object.create(null),
+        Mutation: Object.create(null),
+    });
+}
+
 export {
     compareHashedStringWithPlainStringSafe,
     createErrorLogSchema,
@@ -483,6 +506,7 @@ export {
     handleCatchBlockError,
     handleErrorResult,
     hashStringSafe,
+    mergeResolvers,
     removeFieldFromObject,
     serializeSafe,
     signJWTSafe,

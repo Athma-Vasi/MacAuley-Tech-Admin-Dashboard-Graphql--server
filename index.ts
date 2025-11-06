@@ -15,8 +15,15 @@ import { fileExtensionLimiterMiddleware } from "./src/middlewares/fileExtensionL
 import { fileInfoExtractorMiddleware } from "./src/middlewares/fileInfoExtractor.ts";
 import { filesPayloadExistsMiddleware } from "./src/middlewares/filePayloadExists.ts";
 import { fileSizeLimiterMiddleware } from "./src/middlewares/fileSizeLimiter.ts";
+import { authResolvers } from "./src/resources/auth/resolvers.ts";
+import { authTypeDefs } from "./src/resources/auth/schema.ts";
+import { errorLogResolvers } from "./src/resources/errorLog/resolvers.ts";
+import { errorLogTypeDefs } from "./src/resources/errorLog/schema.ts";
+import { fileUploadResolvers } from "./src/resources/fileUpload/resolvers.ts";
+import { fileUploadTypeDefs } from "./src/resources/fileUpload/schema.ts";
 import { userResolvers } from "./src/resources/user/resolvers.ts";
 import { userTypeDefs } from "./src/resources/user/schema.ts";
+import { mergeResolvers } from "./src/utils.ts";
 
 type AppContext = {
     token?: string;
@@ -31,8 +38,14 @@ try {
     await connectDB(MONGO_URI);
 
     const server = new ApolloServer<AppContext>({
-        typeDefs: userTypeDefs,
-        resolvers: userResolvers,
+        typeDefs: userTypeDefs + authTypeDefs + errorLogTypeDefs +
+            fileUploadTypeDefs,
+        resolvers: mergeResolvers([
+            userResolvers,
+            authResolvers,
+            errorLogResolvers,
+            fileUploadResolvers,
+        ]),
         plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
     });
 

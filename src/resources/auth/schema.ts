@@ -11,15 +11,23 @@ export const authTypeDefs = `#graphql
         updatedAt: String!
     }
 
+    type AuthServerResponse {
+        accessToken: String!
+        dataBox: [Auth]!
+        message: String!
+        statusCode: Int!
+        timestamp: String!
+        totalDocuments: Int
+        totalPages: Int
+    }
+
     type Query {
-        getAuthSessionById(id: ID!): Auth
-        checkUsernameOrEmailExists(username: String, email:String): Boolean!        
+        getAllAuthSessions: AuthServerResponse!
+        getAuthSessionById(id: ID!): AuthServerResponse!
+        checkUsernameOrEmailExists(username: String, email:String): AuthServerResponse!        
     }
 
     type Mutation {
-        # createAuthSession(input: CreateAuthSessionInput!): Auth!
-        # refreshAuthSession(sessionId: ID!): Auth!
-        # revokeAuthSession(sessionId: ID!): Boolean!
         registerUser(
             addressLine: String!
             city: String!
@@ -41,11 +49,11 @@ export const authTypeDefs = `#graphql
             state: String!
             storeLocation: String!
             username: String!
-        ): User!
+        ): AuthServerResponse!
 
-        loginUser(username: String!, password: String!): Auth!
+        loginUser(username: String!, password: String!): AuthServerResponse!
 
-        logoutUser(sessionId: ID!): Boolean!
+        logoutUser(sessionId: ID!): AuthServerResponse!
     }
 
     input CreateAuthSessionInput {
