@@ -282,6 +282,16 @@ function createSafeErrorResult(
         });
     }
 
+    if (typeof error === "object" && error !== null) {
+        return new Err({
+            name: "Error",
+            message: "An error occurred",
+            stack: None,
+            original: Some(serializeSafe(error)),
+            timestamp: new Date().toISOString(),
+        });
+    }
+
     return new Err({
         name: "SimulationDysfunction",
         message: "You've seen it before. Déjà vu. Something's off...",

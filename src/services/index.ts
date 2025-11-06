@@ -21,8 +21,9 @@ const { Ok, None } = tsresults;
 const MAX_RETRIES = 3; // maximum number of retries for operations
 
 function attempt<Doc>(
-  retry: (retriesLeft: number) => Promise<SafeResult<Doc>>,
+  retry: (retriesLeft: number, error?: unknown) => Promise<SafeResult<Doc>>,
   retriesLeft: number,
+  error?: unknown,
 ): Promise<SafeResult<Doc>> {
   const BACK_OFF_FACTOR = 2; // exponential back-off factor
   const DELAY_BASE_MS = 500; // 500 milliseconds
@@ -39,7 +40,7 @@ function attempt<Doc>(
 
   return new Promise((resolve) => {
     setTimeout(() => {
-      retry(retriesLeft - 1).then(resolve);
+      retry(retriesLeft - 1, error).then(resolve);
     }, delay);
   });
 }
@@ -50,9 +51,12 @@ async function getResourceByIdService<
   resourceId: string,
   model: Prettify<Model<Doc>>,
 ): Promise<SafeResult<Doc>> {
-  async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
+  async function retry<Doc>(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -60,8 +64,8 @@ async function getResourceByIdService<
         .lean()
         .exec() as Doc;
       return createSafeSuccessResult(resource);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft) as Promise<SafeResult<Doc>>;
+    } catch (error: unknown) {
+      return attempt(retry, retriesLeft, error) as Promise<SafeResult<Doc>>;
     }
   }
 
@@ -81,9 +85,12 @@ async function getResourceByFieldService<
   projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc>> {
-  async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
+  async function retry<Doc>(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -96,8 +103,8 @@ async function getResourceByFieldService<
           resourceBox[0] == undefined
         ? new Ok(None)
         : createSafeSuccessResult(resourceBox[0]);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft) as Promise<SafeResult<Doc>>;
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_) as Promise<SafeResult<Doc>>;
     }
   }
 
@@ -117,9 +124,12 @@ async function getAllResourcesService<
   projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Array<Doc>>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<Array<Doc>>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<Array<Doc>>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -129,8 +139,8 @@ async function getAllResourcesService<
       return resources.length === 0
         ? new Ok(None)
         : createSafeSuccessResult(resources);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
@@ -144,16 +154,19 @@ async function createNewResourceService<
   schema: Schema,
   model: Model<Doc>,
 ): Promise<SafeResult<Doc>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
       const resource = await model.create(schema) as Doc;
       return createSafeSuccessResult(resource);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
@@ -172,9 +185,12 @@ async function getTotalResourcesService<
     >;
   },
 ): Promise<SafeResult<number>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<number>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<number>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -185,8 +201,8 @@ async function getTotalResourcesService<
         .lean()
         .exec();
       return createSafeSuccessResult(totalResources);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
@@ -206,9 +222,12 @@ async function updateResourceByIdService<
   model: Model<Doc>;
   updateOperator: FieldOperators | ArrayOperators;
 }): Promise<SafeResult<Doc>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -227,8 +246,8 @@ async function updateResourceByIdService<
         .lean()
         .exec() as Doc;
       return createSafeSuccessResult(resource);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
@@ -241,9 +260,12 @@ async function deleteResourceByIdService<
   resourceId: string,
   model: Model<Doc>,
 ): Promise<SafeResult<boolean>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -256,8 +278,8 @@ async function deleteResourceByIdService<
       return acknowledged && deletedCount === 1
         ? createSafeSuccessResult(true)
         : new Ok(None);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
@@ -273,9 +295,12 @@ async function deleteManyResourcesService<
     model: Model<Doc>;
   },
 ): Promise<SafeResult<boolean>> {
-  async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError());
+      return createSafeErrorResult(new RetryLimitExceededError(error));
     }
 
     try {
@@ -302,8 +327,8 @@ async function deleteManyResourcesService<
       return acknowledged && deletedCount === totalResources
         ? createSafeSuccessResult(true)
         : new Ok(None);
-    } catch (_error: unknown) {
-      return attempt(retry, retriesLeft);
+    } catch (error_: unknown) {
+      return attempt(retry, retriesLeft, error_);
     }
   }
 
