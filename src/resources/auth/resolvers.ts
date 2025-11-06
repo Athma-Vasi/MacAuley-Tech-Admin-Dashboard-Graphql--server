@@ -18,7 +18,9 @@ import type {
 } from "../../types.ts";
 import {
     compareHashedStringWithPlainStringSafe,
+    createServerErrorBeforeAuthResponse,
     createServerErrorResponse,
+    createServerSuccessBeforeAuthResponse,
     createServerSuccessResponse,
     decodeJWTSafe,
     handleCatchBlockError,
@@ -44,7 +46,7 @@ const authResolvers = {
             _: unknown,
             args: { username?: string; email?: string },
             _context: { request: RequestBeforeAuth },
-        ): Promise<boolean | null> => {
+        ): Promise<ServerResponseGraphQL<boolean>> => {
             try {
                 console.log(
                     "Checking if username or email exists at register:",
@@ -58,16 +60,20 @@ const authResolvers = {
                     options: {},
                 });
                 if (existingUserResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const existsMaybe = existingUserResult.safeUnwrap();
                 if (existsMaybe.some) {
-                    return true;
+                    return createServerSuccessBeforeAuthResponse(
+                        [true],
+                    );
                 }
 
-                return false;
+                return createServerSuccessBeforeAuthResponse(
+                    [false],
+                );
             } catch (_error: unknown) {
-                return null;
+                return createServerErrorBeforeAuthResponse();
             }
         },
     },
@@ -79,7 +85,7 @@ const authResolvers = {
             context: {
                 request: RequestBeforeAuth & { fileUploads: Array<File> };
             },
-        ): Promise<boolean | null> => {
+        ): Promise<ServerResponseGraphQL<boolean>> => {
             try {
                 console.log(
                     "Registering new user:",
@@ -91,11 +97,11 @@ const authResolvers = {
                     stringToHash: args.password,
                 });
                 if (hashPasswordResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const hashedPasswordMaybe = hashPasswordResult.safeUnwrap();
                 if (hashedPasswordMaybe.none) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const hashedPassword = hashedPasswordMaybe.safeUnwrap();
 
@@ -109,11 +115,11 @@ const authResolvers = {
                     UserModel,
                 );
                 if (createUserResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const createdUserMaybe = createUserResult.safeUnwrap();
                 if (createdUserMaybe.none) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const createdUserDocument = createdUserMaybe.safeUnwrap();
 
@@ -130,12 +136,12 @@ const authResolvers = {
                     FileUploadModel,
                 );
                 if (createFileUploadResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const createdFileUploadMaybe = createFileUploadResult
                     .safeUnwrap();
                 if (createdFileUploadMaybe.none) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const createdFileUploadDocument = createdFileUploadMaybe
                     .safeUnwrap();
@@ -151,12 +157,12 @@ const authResolvers = {
                         updateOperator: "$set",
                     });
                 if (updateUserDocumentResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const updatedUserMaybe = updateUserDocumentResult
                     .safeUnwrap();
                 if (updatedUserMaybe.none) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const updatedUserDocument = updatedUserMaybe.safeUnwrap();
 
@@ -171,12 +177,12 @@ const authResolvers = {
                     updateOperator: "$set",
                 });
                 if (updateFileUploadResult.err) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
                 const updatedFileUploadMaybe = updateFileUploadResult
                     .safeUnwrap();
                 if (updatedFileUploadMaybe.none) {
-                    return null;
+                    return createServerErrorBeforeAuthResponse();
                 }
 
                 console.log(
@@ -184,10 +190,12 @@ const authResolvers = {
                     createdUserDocument.username,
                 );
 
-                return true;
+                return createServerSuccessBeforeAuthResponse(
+                    [true],
+                );
             } catch (error: unknown) {
                 console.error("Error in registerUser resolver:", error);
-                return null;
+                return createServerErrorBeforeAuthResponse();
             }
         },
 

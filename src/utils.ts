@@ -16,6 +16,7 @@ import type {
     SafeResult,
     ServerErrorResponseGraphQL,
     ServerResponseGraphQL,
+    ServerSuccessResponseGraphQL,
 } from "./types.ts";
 const { Err, None, Ok, Some } = tsresults;
 
@@ -188,6 +189,37 @@ function createServerSuccessResponse<Data = unknown>({
     if (totalPages !== undefined) {
         response.totalPages = totalPages;
     }
+
+    return response;
+}
+
+function createServerErrorBeforeAuthResponse(
+    statusCode = 500,
+    message = STATUS_DESCRIPTION_TABLE[statusCode] ?? "Internal Server Error",
+) {
+    const response: ServerErrorResponseGraphQL = {
+        accessToken: "",
+        dataBox: [],
+        message,
+        statusCode,
+        timestamp: new Date(),
+    };
+
+    return response;
+}
+
+function createServerSuccessBeforeAuthResponse<Data = unknown>(
+    dataBox: Array<Data> = [],
+    statusCode = 200,
+    message = STATUS_DESCRIPTION_TABLE[statusCode] ?? "OK",
+): ServerResponseGraphQL<Data> {
+    const response: ServerSuccessResponseGraphQL<Data> = {
+        accessToken: "",
+        dataBox,
+        message,
+        statusCode,
+        timestamp: new Date(),
+    };
 
     return response;
 }
@@ -427,7 +459,9 @@ export {
     createErrorLogSchema,
     createSafeErrorResult,
     createSafeSuccessResult,
+    createServerErrorBeforeAuthResponse,
     createServerErrorResponse,
+    createServerSuccessBeforeAuthResponse,
     createServerSuccessResponse,
     decodeJWTSafe,
     getProjectionFromInfo,
