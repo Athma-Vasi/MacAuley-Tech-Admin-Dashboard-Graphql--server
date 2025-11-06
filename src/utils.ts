@@ -255,6 +255,7 @@ function createSafeErrorResult(
     if (error instanceof AppErrorBase) {
         return new Err({
             name: error.name,
+            kind: "SafeError",
             message: error.message,
             stack: None,
             original: None,
@@ -265,6 +266,7 @@ function createSafeErrorResult(
     if (error instanceof Error) {
         return new Err({
             name: error.name ?? "Error",
+            kind: "SafeError",
             message: error.message ?? "Unknown error",
             stack: error.stack == null ? None : Some(error.stack),
             original: None,
@@ -275,6 +277,7 @@ function createSafeErrorResult(
     if (typeof error === "string") {
         return new Err({
             name: "Error",
+            kind: "SafeError",
             message: error,
             stack: None,
             original: None,
@@ -285,6 +288,7 @@ function createSafeErrorResult(
     if (typeof error === "object" && error !== null) {
         return new Err({
             name: "Error",
+            kind: "SafeError",
             message: "An error occurred",
             stack: None,
             original: Some(serializeSafe(error)),
@@ -292,8 +296,16 @@ function createSafeErrorResult(
         });
     }
 
+    if (
+        typeof error === "object" && error !== null && "kind" in error &&
+        error.kind === "SafeError"
+    ) {
+        return error as unknown as ErrImpl<SafeError>;
+    }
+
     return new Err({
         name: "SimulationDysfunction",
+        kind: "SafeError",
         message: "You've seen it before. Déjà vu. Something's off...",
         stack: None,
         original: Some(serializeSafe(error)),

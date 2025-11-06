@@ -1,3 +1,4 @@
+import type { SignOptions } from "jsonwebtoken";
 import type {
   FilterQuery,
   Model,
@@ -6,15 +7,24 @@ import type {
   RootFilterQuery,
 } from "mongoose";
 import tsresults from "ts-results";
-import { RetryLimitExceededError } from "../errors/index.ts";
+import {
+  RetryLimitExceededError,
+  TokenCreationError,
+} from "../errors/index.ts";
+import { AuthModel } from "../resources/auth/model.ts";
 import type {
   ArrayOperators,
+  DecodedToken,
   FieldOperators,
   Prettify,
   RecordDB,
   SafeResult,
 } from "../types.ts";
-import { createSafeErrorResult, createSafeSuccessResult } from "../utils.ts";
+import {
+  createSafeErrorResult,
+  createSafeSuccessResult,
+  signJWTSafe,
+} from "../utils.ts";
 
 const { Ok, None } = tsresults;
 
@@ -335,8 +345,121 @@ async function deleteManyResourcesService<
   return await retry(MAX_RETRIES);
 }
 
+async function createTokenService(
+  { accessToken, expiresIn, oldDecodedToken, seed }: {
+    accessToken: string;
+    oldDecodedToken: DecodedToken;
+    expiresIn: SignOptions["expiresIn"];
+    seed: string;
+  },
+): Promise<SafeResult<string>> {
+  async function retry(
+    retriesLeft: number,
+    error?: unknown,
+  ): Promise<SafeResult<string>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new RetryLimitExceededError(error));
+    }
+
+    try {
+      const {
+        userId,
+        roles,
+        username,
+        sessionId,
+      } = oldDecodedToken;
+
+      // get current session info from DB
+      const getSessionResult = await getResourceByIdService(
+        sessionId.toString(),
+        AuthModel,
+      );
+      if (getSessionResult.err) {
+        return createSafeErrorResult(getSessionResult.val);
+      }
+      const sessionMaybe = getSessionResult.safeUnwrap();
+      // session has maybe expired ( > 24 hours)
+      // user will be required to log in again
+      if (sessionMaybe.none) {
+        return createSafeErrorResult(
+          new TokenCreationError("Session not found"),
+        );
+      }
+      const session = sessionMaybe.unwrap();
+
+      // if the incoming access token is not the same as the one in the database
+      if (session.currentlyActiveToken.trim() !== accessToken.trim()) {
+        // invalidate currently active session
+        const deleteSessionResult = await deleteResourceByIdService(
+          sessionId.toString(),
+          AuthModel,
+        );
+        if (deleteSessionResult.err) {
+          return createSafeErrorResult(deleteSessionResult.val);
+        }
+        return createSafeErrorResult(
+          new TokenCreationError("Session invalidated"),
+        );
+      }
+
+      // create a new access token
+      // and use existing session ID to sign new token
+      const newAccessTokenResult = signJWTSafe({
+        payload: {
+          userId,
+          username,
+          roles,
+          sessionId: session._id.toString(),
+        },
+        secretOrPrivateKey: seed,
+        options: expiresIn === undefined ? {} : {
+          expiresIn,
+        },
+      });
+      if (newAccessTokenResult.err) {
+        return createSafeErrorResult(newAccessTokenResult.val);
+      }
+      const newAccessTokenMaybe = newAccessTokenResult.safeUnwrap();
+      if (newAccessTokenMaybe.none) {
+        return createSafeErrorResult(
+          new TokenCreationError("Failed to create new access token"),
+        );
+      }
+      const newAccessToken = newAccessTokenMaybe.unwrap();
+
+      // update the session in the database with the new access token
+      const updateSessionResult = await updateResourceByIdService({
+        resourceId: sessionId.toString(),
+        updateFields: {
+          currentlyActiveToken: newAccessToken,
+        },
+        updateOperator: "$set",
+        model: AuthModel,
+      });
+      if (updateSessionResult.err) {
+        return createSafeErrorResult(updateSessionResult.val);
+      }
+      const updatedSessionMaybe = updateSessionResult.safeUnwrap();
+      if (updatedSessionMaybe.none) {
+        return createSafeErrorResult(
+          new TokenCreationError("Failed to update session with new token"),
+        );
+      }
+
+      // update session was successful
+      // return the new access token
+      return createSafeSuccessResult(newAccessToken);
+    } catch (error: unknown) {
+      return createSafeErrorResult(new TokenCreationError(error));
+    }
+  }
+
+  return await retry(MAX_RETRIES);
+}
+
 export {
   createNewResourceService,
+  createTokenService,
   deleteManyResourcesService,
   deleteResourceByIdService,
   getAllResourcesService,

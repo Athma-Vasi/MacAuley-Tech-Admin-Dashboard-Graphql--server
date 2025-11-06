@@ -99,6 +99,21 @@ class NetworkError extends AppErrorBase {
     }
 }
 
+class TokenCreationError extends AppErrorBase {
+    readonly _tag = "TokenCreationError";
+
+    constructor(error?: unknown, message = "Token creation error occurred") {
+        super(
+            "TokenCreationError",
+            error instanceof Error ? error.name : "UnknownError",
+            error instanceof Error && error.stack
+                ? error.stack
+                : "Stack trace not available",
+            message,
+        );
+    }
+}
+
 class TokenDecodeError extends AppErrorBase {
     readonly _tag = "TokenDecodeError";
 
@@ -267,6 +282,7 @@ export {
     ResolverError,
     RetryLimitExceededError,
     TimeoutError,
+    TokenCreationError,
     TokenDecodeError,
     TokenSignatureError,
     TokenVerificationError,

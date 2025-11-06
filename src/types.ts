@@ -72,6 +72,7 @@ type RecordDB<
 
 type SafeError = {
     name: string;
+    kind: "SafeError";
     message: string;
     stack: Option<string>;
     original: Option<string>;
