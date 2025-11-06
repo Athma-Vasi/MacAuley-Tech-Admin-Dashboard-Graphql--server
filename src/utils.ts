@@ -71,7 +71,7 @@ function createErrorLogSchema(
 }
 
 async function handleCatchBlockError(
-    error: unknown,
+    error: unknown | AppErrorBase,
     request: RequestAfterSuccessfulAuth,
 ): Promise<ServerErrorResponseGraphQL> {
     try {

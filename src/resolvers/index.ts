@@ -1,6 +1,7 @@
 import type { GraphQLResolveInfo } from "graphql";
 import type { Model } from "mongoose";
 import { PROPERTY_DESCRIPTOR } from "../constants.ts";
+import { ResolverError } from "../errors/index.ts";
 import {
     createNewResourceService,
     deleteResourceByIdService,
@@ -101,7 +102,7 @@ function getAllResourcesResolver<
             console.log("catch block error");
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {
@@ -193,7 +194,7 @@ function getResourceByIdResolver<
         } catch (error: unknown) {
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {
@@ -272,7 +273,7 @@ function getResourceByFieldResolver<
         } catch (error: unknown) {
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {
@@ -350,7 +351,7 @@ function createNewResourceResolver<
         } catch (error: unknown) {
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {
@@ -426,7 +427,7 @@ function updateResourceByIdResolver<
         } catch (error: unknown) {
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {
@@ -497,7 +498,7 @@ function deleteResourceByIdResolver<
         } catch (error: unknown) {
             try {
                 return await handleCatchBlockError(
-                    error,
+                    new ResolverError(error),
                     context.request,
                 );
             } catch (_error: unknown) {

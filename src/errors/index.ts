@@ -225,6 +225,21 @@ class HashGenerationError extends AppErrorBase {
     }
 }
 
+class ResolverError extends AppErrorBase {
+    readonly _tag = "ResolverError";
+
+    constructor(error?: unknown, message = "Resolver error occurred") {
+        super(
+            "ResolverError",
+            error instanceof Error ? error.name : "UnknownError",
+            error instanceof Error && error.stack
+                ? error.stack
+                : "Stack trace not available",
+            message,
+        );
+    }
+}
+
 class UnknownError extends AppErrorBase {
     readonly _tag = "UnknownError";
 
@@ -249,6 +264,7 @@ export {
     NetworkError,
     NotFoundError,
     PromiseRejectionError,
+    ResolverError,
     RetryLimitExceededError,
     TimeoutError,
     TokenDecodeError,
