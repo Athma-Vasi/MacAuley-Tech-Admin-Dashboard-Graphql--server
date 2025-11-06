@@ -5,7 +5,8 @@ import type {
   QueryOptions,
   RootFilterQuery,
 } from "mongoose";
-import tsresults from "ts-results";
+import tsresults, { Err } from "ts-results";
+import { RetryLimitExceededError } from "../error/index.ts";
 import type {
   ArrayOperators,
   FieldOperators,
@@ -51,7 +52,9 @@ async function getResourceByIdService<
 ): Promise<SafeResult<Doc>> {
   async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new Error("Max retries exceeded"));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(new Err("Maximum retries exceeded")),
+      );
     }
 
     try {

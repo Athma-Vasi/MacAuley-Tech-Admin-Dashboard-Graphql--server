@@ -43,12 +43,17 @@ abstract class AppErrorBase<
 
     constructor(
         name: string,
-        message: string,
         info: ErrInfo,
     ) {
         this.name = name;
-        this.message = message;
         this.info = info;
+        this.message = info.err && info.val
+            ? typeof info.val === "string"
+                ? info.val
+                : info.val instanceof Error
+                ? info.val.message
+                : JSON.stringify(info.val)
+            : "No additional error message provided";
         this.stack = info.err && info.stack
             ? info.stack
             : "Stack not available";
@@ -59,99 +64,80 @@ abstract class AppErrorBase<
 class AuthError extends AppErrorBase<string> {
     readonly _tag = "AuthError";
 
-    constructor(
-        info: Err<string>,
-        message = "Authentication error occurred",
-    ) {
-        super("AuthError", message, info);
+    constructor(info: Err<string>) {
+        super("AuthError", info);
     }
 }
 
 class ValidationError extends AppErrorBase<string> {
     readonly _tag = "ValidationError";
 
-    constructor(
-        info: Err<string>,
-        message = "Validation error occurred",
-    ) {
-        super("ValidationError", message, info);
+    constructor(info: Err<string>) {
+        super("ValidationError", info);
     }
 }
 
 class DatabaseError extends AppErrorBase<string> {
     readonly _tag = "DatabaseError";
 
-    constructor(
-        info: Err<string>,
-        message = "Database error occurred",
-    ) {
-        super("DatabaseError", message, info);
+    constructor(info: Err<string>) {
+        super("DatabaseError", info);
     }
 }
 
 class NotFoundError extends AppErrorBase<string> {
     readonly _tag = "NotFoundError";
 
-    constructor(
-        info: Err<string>,
-        message = "Resource not found",
-    ) {
-        super("NotFoundError", message, info);
+    constructor(info: Err<string>) {
+        super("NotFoundError", info);
     }
 }
 
 class NetworkError extends AppErrorBase<string> {
     readonly _tag = "NetworkError";
 
-    constructor(
-        info: Err<string>,
-        message = "Network error occurred",
-    ) {
-        super("NetworkError", message, info);
+    constructor(info: Err<string>) {
+        super("NetworkError", info);
     }
 }
 
 class TokenDecodeError extends AppErrorBase<string> {
     readonly _tag = "TokenDecodeError";
 
-    constructor(
-        info: Err<string>,
-        message = "Token decoding error occurred",
-    ) {
-        super("TokenDecodeError", message, info);
+    constructor(info: Err<string>) {
+        super("TokenDecodeError", info);
     }
 }
 
 class TimeoutError extends AppErrorBase<string> {
     readonly _tag = "TimeoutError";
 
-    constructor(
-        info: Err<string>,
-        message = "Operation timed out",
-    ) {
-        super("TimeoutError", message, info);
+    constructor(info: Err<string>) {
+        super("TimeoutError", info);
     }
 }
 
 class PromiseRejectionError extends AppErrorBase<unknown> {
     readonly _tag = "PromiseRejectionError";
 
-    constructor(
-        info: Err<unknown>,
-        message = "Unhandled promise rejection",
-    ) {
-        super("PromiseRejectionError", message, info);
+    constructor(info: Err<unknown>) {
+        super("PromiseRejectionError", info);
+    }
+}
+
+class RetryLimitExceededError extends AppErrorBase<string> {
+    readonly _tag = "RetryLimitExceededError";
+
+    constructor(info: Err<string>) {
+        super("RetryLimitExceededError", info);
     }
 }
 
 class UnknownError extends AppErrorBase<unknown> {
     readonly _tag = "UnknownError";
 
-    constructor(
-        info: Err<unknown>,
-        message = "An unknown error occurred",
-    ) {
-        super("UnknownError", message, info);
+    constructor(info: Err<unknown>) {
+        super("UnknownError", info);
     }
 }
 
@@ -162,6 +148,7 @@ export {
     NetworkError,
     NotFoundError,
     PromiseRejectionError,
+    RetryLimitExceededError,
     TimeoutError,
     TokenDecodeError,
     UnknownError,

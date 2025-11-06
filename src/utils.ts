@@ -4,6 +4,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import type { Buffer } from "node:buffer";
 import tsresults, { type ErrImpl, type OkImpl, type Option } from "ts-results";
 import { PROPERTY_DESCRIPTOR, STATUS_DESCRIPTION_TABLE } from "./constants.ts";
+import type { AppErrorBase } from "./error/index.ts";
 import {
     ErrorLogModel,
     type ErrorLogSchema,
@@ -240,51 +241,55 @@ function serializeSafe(data: unknown): string {
 }
 
 function createSafeErrorResult(
-    error: unknown,
-): ErrImpl<SafeError> {
-    if (error instanceof Error) {
-        return new Err({
-            name: error.name ?? "Error",
-            message: error.message ?? "Unknown error",
-            stack: error.stack == null ? None : Some(error.stack),
-            original: None,
-        });
-    }
+    error: AppErrorBase<unknown>,
+): ErrImpl<SafeError> {}
 
-    if (typeof error === "string") {
-        return new Err({
-            name: "Error",
-            message: error,
-            stack: None,
-            original: None,
-        });
-    }
+// function createSafeErrorResult(
+//     error: unknown,
+// ): ErrImpl<SafeError> {
+//     if (error instanceof Error) {
+//         return new Err({
+//             name: error.name ?? "Error",
+//             message: error.message ?? "Unknown error",
+//             stack: error.stack == null ? None : Some(error.stack),
+//             original: None,
+//         });
+//     }
 
-    if (error instanceof Event) {
-        if (error instanceof PromiseRejectionEvent) {
-            return new Err({
-                name: `PromiseRejectionEvent: ${error.type}`,
-                message: error.reason.toString() ?? "No reason provided",
-                stack: None,
-                original: Some(serializeSafe(error)),
-            });
-        }
+//     if (typeof error === "string") {
+//         return new Err({
+//             name: "Error",
+//             message: error,
+//             stack: None,
+//             original: None,
+//         });
+//     }
 
-        return new Err({
-            name: `EventError: ${error.type}`,
-            message: error.timeStamp.toString() ?? "No timestamp provided",
-            stack: None,
-            original: Some(serializeSafe(error)),
-        });
-    }
+//     if (error instanceof Event) {
+//         if (error instanceof PromiseRejectionEvent) {
+//             return new Err({
+//                 name: `PromiseRejectionEvent: ${error.type}`,
+//                 message: error.reason.toString() ?? "No reason provided",
+//                 stack: None,
+//                 original: Some(serializeSafe(error)),
+//             });
+//         }
 
-    return new Err({
-        name: "SimulationDysfunction",
-        message: "You've seen it before. Déjà vu. Something's off...",
-        stack: None,
-        original: Some(serializeSafe(error)),
-    });
-}
+//         return new Err({
+//             name: `EventError: ${error.type}`,
+//             message: error.timeStamp.toString() ?? "No timestamp provided",
+//             stack: None,
+//             original: Some(serializeSafe(error)),
+//         });
+//     }
+
+//     return new Err({
+//         name: "SimulationDysfunction",
+//         message: "You've seen it before. Déjà vu. Something's off...",
+//         stack: None,
+//         original: Some(serializeSafe(error)),
+//     });
+// }
 
 /**
  * Extracts MongoDB projection object from GraphQL query selection info.
