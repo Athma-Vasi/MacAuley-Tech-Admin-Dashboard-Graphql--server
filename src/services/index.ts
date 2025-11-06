@@ -280,7 +280,7 @@ async function deleteManyResourcesService<
     try {
       const totalResources = await model.countDocuments(
         filter,
-        options as unknown as Pick<
+        options as Pick<
           QueryOptions<Doc>,
           MongooseBaseQueryOptionKeys
         >,
@@ -290,7 +290,7 @@ async function deleteManyResourcesService<
 
       const { acknowledged, deletedCount } = await model.deleteMany(
         filter,
-        options as unknown as Pick<
+        options as Pick<
           QueryOptions<Doc>,
           MongooseBaseQueryOptionKeys
         >,
