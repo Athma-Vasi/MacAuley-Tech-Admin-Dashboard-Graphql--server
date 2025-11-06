@@ -17,11 +17,12 @@ import { createSafeErrorResult, createSafeSuccessResult } from "../utils.ts";
 
 const { Ok, None } = tsresults;
 
+const MAX_RETRIES = 3; // maximum number of retries for operations
+
 function attempt<Doc>(
-  retry: (retriesLeft: number) => Promise<SafeResult<Array<Doc>>>,
+  retry: (retriesLeft: number) => Promise<SafeResult<Doc>>,
   retriesLeft: number,
-): Promise<SafeResult<Array<Doc>>> {
-  const MAX_RETRIES = 3; // maximum number of retries for operations
+): Promise<SafeResult<Doc>> {
   const BACK_OFF_FACTOR = 2; // exponential back-off factor
   const DELAY_BASE_MS = 500; // 500 milliseconds
 
@@ -48,14 +49,22 @@ async function getResourceByIdService<
   resourceId: string,
   model: Prettify<Model<Doc>>,
 ): Promise<SafeResult<Doc>> {
-  try {
-    const resource = await model.findById(resourceId)
-      .lean()
-      .exec() as Doc;
-    return createSafeSuccessResult(resource);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+  async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
+
+    try {
+      const resource = await model.findById(resourceId)
+        .lean()
+        .exec() as Doc;
+      return createSafeSuccessResult(resource);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft) as Promise<SafeResult<Doc>>;
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 async function getResourceByFieldService<
@@ -71,22 +80,30 @@ async function getResourceByFieldService<
   projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Doc>> {
-  try {
-    const resourceBox = await model.find(filter, projection, options)
-      .lean()
-      .exec() as Array<Doc>;
+  async function retry<Doc>(retriesLeft: number): Promise<SafeResult<Doc>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
 
-    return resourceBox.length === 0 || resourceBox.length > 1 ||
-        resourceBox[0] == null ||
-        resourceBox[0] == undefined
-      ? new Ok(None)
-      : createSafeSuccessResult(resourceBox[0]);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+    try {
+      const resourceBox = await model.find(filter, projection, options)
+        .lean()
+        .exec() as Array<Doc>;
+
+      return resourceBox.length === 0 || resourceBox.length > 1 ||
+          resourceBox[0] == null ||
+          resourceBox[0] == undefined
+        ? new Ok(None)
+        : createSafeSuccessResult(resourceBox[0]);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft) as Promise<SafeResult<Doc>>;
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
-function getAllResourcesService<
+async function getAllResourcesService<
   Doc extends Record<PropertyKey, unknown> = RecordDB,
 >({
   model,
@@ -116,18 +133,7 @@ function getAllResourcesService<
     }
   }
 
-  return retry(MAX_RETRIES);
-  // try {
-  //   const resources = await model.find(filter, projection, options)
-  //     .lean()
-  //     .exec() as Array<Doc>;
-
-  //   return resources.length === 0
-  //     ? new Ok(None)
-  //     : createSafeSuccessResult(resources);
-  // } catch (error: unknown) {
-  //   return createSafeErrorResult(error);
-  // }
+  return await retry(MAX_RETRIES);
 }
 
 async function createNewResourceService<
@@ -137,12 +143,20 @@ async function createNewResourceService<
   schema: Schema,
   model: Model<Doc>,
 ): Promise<SafeResult<Doc>> {
-  try {
-    const resource = await model.create(schema) as Doc;
-    return createSafeSuccessResult(resource);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+  async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
+
+    try {
+      const resource = await model.create(schema) as Doc;
+      return createSafeSuccessResult(resource);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft);
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 async function getTotalResourcesService<
@@ -157,17 +171,25 @@ async function getTotalResourcesService<
     >;
   },
 ): Promise<SafeResult<number>> {
-  try {
-    const totalResources = await model.countDocuments(
-      filter,
-      options,
-    )
-      .lean()
-      .exec();
-    return createSafeSuccessResult(totalResources);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+  async function retry(retriesLeft: number): Promise<SafeResult<number>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
+
+    try {
+      const totalResources = await model.countDocuments(
+        filter,
+        options,
+      )
+        .lean()
+        .exec();
+      return createSafeSuccessResult(totalResources);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft);
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 async function updateResourceByIdService<
@@ -183,25 +205,33 @@ async function updateResourceByIdService<
   model: Model<Doc>;
   updateOperator: FieldOperators | ArrayOperators;
 }): Promise<SafeResult<Doc>> {
-  try {
-    const updateObject = {
-      [updateOperator]: updateFields,
-    } as Pick<
-      QueryOptions<Doc>,
-      MongooseBaseQueryOptionKeys
-    >;
+  async function retry(retriesLeft: number): Promise<SafeResult<Doc>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
 
-    const resource = await model.findByIdAndUpdate(
-      resourceId,
-      updateObject,
-      { new: true },
-    )
-      .lean()
-      .exec() as Doc;
-    return createSafeSuccessResult(resource);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+    try {
+      const updateObject = {
+        [updateOperator]: updateFields,
+      } as Pick<
+        QueryOptions<Doc>,
+        MongooseBaseQueryOptionKeys
+      >;
+
+      const resource = await model.findByIdAndUpdate(
+        resourceId,
+        updateObject,
+        { new: true },
+      )
+        .lean()
+        .exec() as Doc;
+      return createSafeSuccessResult(resource);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft);
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 async function deleteResourceByIdService<
@@ -210,19 +240,27 @@ async function deleteResourceByIdService<
   resourceId: string,
   model: Model<Doc>,
 ): Promise<SafeResult<boolean>> {
-  try {
-    const { acknowledged, deletedCount } = await model.deleteOne({
-      _id: resourceId,
-    })
-      .lean()
-      .exec();
+  async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
 
-    return acknowledged && deletedCount === 1
-      ? createSafeSuccessResult(true)
-      : new Ok(None);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+    try {
+      const { acknowledged, deletedCount } = await model.deleteOne({
+        _id: resourceId,
+      })
+        .lean()
+        .exec();
+
+      return acknowledged && deletedCount === 1
+        ? createSafeSuccessResult(true)
+        : new Ok(None);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft);
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 async function deleteManyResourcesService<
@@ -234,33 +272,41 @@ async function deleteManyResourcesService<
     model: Model<Doc>;
   },
 ): Promise<SafeResult<boolean>> {
-  try {
-    const totalResources = await model.countDocuments(
-      filter,
-      options as unknown as Pick<
-        QueryOptions<Doc>,
-        MongooseBaseQueryOptionKeys
-      >,
-    )
-      .lean()
-      .exec() as number;
+  async function retry(retriesLeft: number): Promise<SafeResult<boolean>> {
+    if (retriesLeft <= 0) {
+      return createSafeErrorResult(new Error("Max retries exceeded"));
+    }
 
-    const { acknowledged, deletedCount } = await model.deleteMany(
-      filter,
-      options as unknown as Pick<
-        QueryOptions<Doc>,
-        MongooseBaseQueryOptionKeys
-      >,
-    )
-      .lean()
-      .exec();
+    try {
+      const totalResources = await model.countDocuments(
+        filter,
+        options as unknown as Pick<
+          QueryOptions<Doc>,
+          MongooseBaseQueryOptionKeys
+        >,
+      )
+        .lean()
+        .exec() as number;
 
-    return acknowledged && deletedCount === totalResources
-      ? createSafeSuccessResult(true)
-      : new Ok(None);
-  } catch (error: unknown) {
-    return createSafeErrorResult(error);
+      const { acknowledged, deletedCount } = await model.deleteMany(
+        filter,
+        options as unknown as Pick<
+          QueryOptions<Doc>,
+          MongooseBaseQueryOptionKeys
+        >,
+      )
+        .lean()
+        .exec();
+
+      return acknowledged && deletedCount === totalResources
+        ? createSafeSuccessResult(true)
+        : new Ok(None);
+    } catch (_error: unknown) {
+      return attempt(retry, retriesLeft);
+    }
   }
+
+  return await retry(MAX_RETRIES);
 }
 
 export {
