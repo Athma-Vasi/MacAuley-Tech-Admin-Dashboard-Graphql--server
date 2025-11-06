@@ -6,7 +6,6 @@ import type {
   RootFilterQuery,
 } from "mongoose";
 import tsresults from "ts-results";
-import { BACK_OFF_FACTOR, DELAY_BASE_MS, MAX_RETRIES } from "../constants.ts";
 import type {
   ArrayOperators,
   FieldOperators,
@@ -17,6 +16,31 @@ import type {
 import { createSafeErrorResult, createSafeSuccessResult } from "../utils.ts";
 
 const { Ok, None } = tsresults;
+
+function attempt<Doc>(
+  retry: (retriesLeft: number) => Promise<SafeResult<Array<Doc>>>,
+  retriesLeft: number,
+): Promise<SafeResult<Array<Doc>>> {
+  const MAX_RETRIES = 3; // maximum number of retries for operations
+  const BACK_OFF_FACTOR = 2; // exponential back-off factor
+  const DELAY_BASE_MS = 500; // 500 milliseconds
+
+  const backoff = Math.pow(BACK_OFF_FACTOR, MAX_RETRIES - retriesLeft) *
+    DELAY_BASE_MS;
+  const jitter = backoff * 0.2 * (Math.random() - 0.5);
+  const delay = backoff + jitter;
+
+  console.group("Retrying operation...");
+  console.log(`Retries left: ${retriesLeft - 1}`);
+  console.log(`Delay: ${Math.round(delay)} ms`);
+  console.groupEnd();
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      retry(retriesLeft - 1).then(resolve);
+    }, delay);
+  });
+}
 
 async function getResourceByIdService<
   Doc extends Record<PropertyKey, unknown> = RecordDB,
@@ -75,7 +99,7 @@ function getAllResourcesService<
   projection?: Record<PropertyKey, unknown>;
   options?: QueryOptions<Doc>;
 }): Promise<SafeResult<Array<Doc>>> {
-  async function attempt(retriesLeft: number): Promise<SafeResult<Array<Doc>>> {
+  async function retry(retriesLeft: number): Promise<SafeResult<Array<Doc>>> {
     if (retriesLeft <= 0) {
       return createSafeErrorResult(new Error("Max retries exceeded"));
     }
@@ -88,25 +112,11 @@ function getAllResourcesService<
         ? new Ok(None)
         : createSafeSuccessResult(resources);
     } catch (_error: unknown) {
-      const backoff = Math.pow(BACK_OFF_FACTOR, MAX_RETRIES - retriesLeft) *
-        DELAY_BASE_MS;
-      const jitter = backoff * 0.2 * (Math.random() - 0.5);
-      const delay = backoff + jitter;
-
-      console.group("Retrying operation...");
-      console.log(`Retries left: ${retriesLeft - 1}`);
-      console.log(`Delay: ${Math.round(delay)} ms`);
-      console.groupEnd();
-
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          attempt(retriesLeft - 1).then(resolve);
-        }, delay);
-      });
+      return attempt(retry, retriesLeft);
     }
   }
 
-  return attempt(MAX_RETRIES);
+  return retry(MAX_RETRIES);
   // try {
   //   const resources = await model.find(filter, projection, options)
   //     .lean()

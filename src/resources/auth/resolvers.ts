@@ -271,7 +271,7 @@ const authResolvers = {
 
                 const addressIP = typeof request.headers["ip"] === "string"
                     ? request.headers["ip"]
-                    : request.headers["ip"]?.join(",") ?? "unknown";
+                    : request.headers["ip"]?.join(", ") ?? "unknown";
 
                 // create auth session (without token yet)
                 const authSessionSchema: AuthSchema = {

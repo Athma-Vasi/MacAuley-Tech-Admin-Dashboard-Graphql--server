@@ -8,10 +8,6 @@ const ERROR_LOG_EXPIRY = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const AUTH_SESSION_EXPIRY = Date.now() + 1000 * 60 * 60 * 24; // 24 hours
 
-const MAX_RETRIES = 3; // maximum number of retries for operations
-const BACK_OFF_FACTOR = 2; // exponential back-off factor
-const DELAY_BASE_MS = 500; // 500 milliseconds
-
 const PROPERTY_DESCRIPTOR: PropertyDescriptor = {
     configurable: false,
     enumerable: true,
@@ -109,13 +105,10 @@ const STATUS_DESCRIPTION_TABLE: Record<number, string> = {
 export {
     ACCESS_TOKEN_EXPIRY,
     AUTH_SESSION_EXPIRY,
-    BACK_OFF_FACTOR,
-    DELAY_BASE_MS,
     ERROR_LOG_EXPIRY,
     FILE_UPLOAD_EXPIRY,
     HASH_SALT_ROUNDS,
     INVALID_CREDENTIALS,
-    MAX_RETRIES,
     NEW_USER_EXPIRY,
     PROPERTY_DESCRIPTOR,
     STATUS_DESCRIPTION_TABLE,
