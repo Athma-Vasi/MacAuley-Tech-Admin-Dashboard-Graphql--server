@@ -71,6 +71,18 @@ const URL_REGEX =
   /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
 
 /**
+ * - /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-fA-F0-9:]+)$/
+ * - (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) matches a number between 0 and 255, representing an octet in an IPv4 address.
+ * - \. matches the dot (.) separator between octets.
+ * - {3} specifies that the preceding group (octet and dot) should occur exactly three times, representing the first three octets of an IPv4 address.
+ * - (?:25[0-5]|2[0-4
+ * [0-9]|[01]?[0-9][0-9]?|[a-fA-F0-9:]+) matches either a number between 0 and 255 (for IPv4) or a sequence of hexadecimal characters and colons (for IPv6), representing the last octet of an IPv4 address or the entire IPv6 address.
+ * - ^ and $ ensure that the entire string matches the regex.
+ */
+const IP_ADDRESS_REGEX =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-fA-F0-9:]+)$/;
+
+/**
  * - /^[A-Za-z\s.\-']{2,75}$/i
  * - [A-Za-z\s.\-'] matches any letter, whitespace, period, hyphen, or apostrophe.
  * - {2,75} ensures that the text is between 2 and 75 characters long.
@@ -426,6 +438,7 @@ export {
   HUMAN_RESOURCES_REGEX,
   INFORMATION_TECHNOLOGY_REGEX,
   INTEGER_REGEX,
+  IP_ADDRESS_REGEX,
   JOB_POSITION_REGEX,
   LARGE_INTEGER_REGEX,
   LOGISTICS_AND_INVENTORY_REGEX,

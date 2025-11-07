@@ -1,5 +1,7 @@
+import type { ValidatorProps } from "mongoose";
 import { model, Schema, type Types } from "mongoose";
 import { AUTH_SESSION_EXPIRY } from "../../constants.ts";
+import { IP_ADDRESS_REGEX, USERNAME_REGEX } from "../../regex/index.ts";
 
 type AuthSchema = {
     // this is the token that is currently active for the user associated with this session
@@ -30,6 +32,13 @@ const authSchema = new Schema(
         addressIP: {
             type: String,
             required: [true, "IP Address is required. Received {VALUE}"],
+            validate: {
+                validator: function (v: string) {
+                    return IP_ADDRESS_REGEX.test(v);
+                },
+                message: (props: ValidatorProps) =>
+                    `${props.value} is not a valid IP address!`,
+            },
         },
         expireAt: {
             type: Date,
@@ -50,6 +59,16 @@ const authSchema = new Schema(
         username: {
             type: String,
             required: [true, "Username is required. Received {VALUE}"],
+            validate: {
+                validator: function usernameValidator(v: string) {
+                    return USERNAME_REGEX.test(v);
+                },
+                message: (props: ValidatorProps) =>
+                    `${props.value} is not a valid username. 
+                     Usernames must be 3-48 characters long, can contain alphanumeric characters,
+                     hyphens, underscores, and periods, cannot start with a hyphen, underscore, 
+                     or period, and cannot consist entirely of zeroes.`,
+            },
         },
     },
     { timestamps: true },
