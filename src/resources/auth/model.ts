@@ -22,11 +22,14 @@ const authSchema = new Schema(
     {
         currentlyActiveToken: {
             type: String,
-            required: [true, "Currently Active Token is required"],
+            required: [
+                true,
+                "Currently Active Token is required. Received {VALUE}",
+            ],
         },
         addressIP: {
             type: String,
-            required: [true, "IP Address is required"],
+            required: [true, "IP Address is required. Received {VALUE}"],
         },
         expireAt: {
             type: Date,
@@ -36,17 +39,17 @@ const authSchema = new Schema(
         },
         userAgent: {
             type: String,
-            required: [true, "User Agent is required"],
+            required: [true, "User Agent is required. Received {VALUE}"],
         },
         userId: {
             type: Schema.Types.ObjectId,
-            required: [true, "User ID is required"],
+            required: [true, "User ID is required. Received {VALUE}"],
             ref: "User",
             index: true,
         },
         username: {
             type: String,
-            required: [true, "Username is required"],
+            required: [true, "Username is required. Received {VALUE}"],
         },
     },
     { timestamps: true },

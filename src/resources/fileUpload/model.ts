@@ -38,39 +38,39 @@ const fileUploadSchema = new Schema<FileUploadDocument>(
         },
         userId: {
             type: Schema.Types.ObjectId,
-            required: [true, "User Id is required"],
+            required: [true, "User Id is required. Received {VALUE}"],
             ref: "User",
             index: true,
         },
         uploadedFile: {
             type: Buffer,
-            required: [true, "Uploaded file is required"],
+            required: [true, "Uploaded file is required. Received {VALUE}"],
         },
         username: {
             type: String,
-            required: [true, "Username is required"],
+            required: [true, "Username is required. Received {VALUE}"],
         },
 
         fileExtension: {
             type: String,
-            required: [true, "File extension is required"],
+            required: [true, "File extension is required. Received {VALUE}"],
             index: true,
         },
         fileName: {
             type: String,
-            required: [true, "File name is required"],
+            required: [true, "File name is required. Received {VALUE}"],
         },
         fileSize: {
             type: Number,
-            required: [true, "File size is required"],
+            required: [true, "File size is required. Received {VALUE}"],
         },
         fileMimeType: {
             type: String,
-            required: [true, "File MIME type is required"],
+            required: [true, "File MIME type is required. Received {VALUE}"],
         },
         fileEncoding: {
             type: String,
-            required: [true, "File encoding is required"],
+            required: [true, "File encoding is required. Received {VALUE}"],
         },
     },
     {

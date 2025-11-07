@@ -66,7 +66,9 @@ async function getResourceByIdService<
     error?: unknown,
   ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -100,7 +102,9 @@ async function getResourceByFieldService<
     error?: unknown,
   ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -139,7 +143,9 @@ async function getAllResourcesService<
     error?: unknown,
   ): Promise<SafeResult<Array<Doc>>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -169,7 +175,9 @@ async function createNewResourceService<
     error?: unknown,
   ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -200,7 +208,9 @@ async function getTotalResourcesService<
     error?: unknown,
   ): Promise<SafeResult<number>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -237,7 +247,9 @@ async function updateResourceByIdService<
     error?: unknown,
   ): Promise<SafeResult<Doc>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -275,7 +287,9 @@ async function deleteResourceByIdService<
     error?: unknown,
   ): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
@@ -301,7 +315,7 @@ async function deleteManyResourcesService<
 >(
   { filter, model, options }: {
     filter?: FilterQuery<Doc>;
-    options?: QueryOptions<Doc>;
+    options?: Pick<QueryOptions<Doc>, MongooseBaseQueryOptionKeys>;
     model: Model<Doc>;
   },
 ): Promise<SafeResult<boolean>> {
@@ -310,26 +324,22 @@ async function deleteManyResourcesService<
     error?: unknown,
   ): Promise<SafeResult<boolean>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {
       const totalResources = await model.countDocuments(
         filter,
-        options as Pick<
-          QueryOptions<Doc>,
-          MongooseBaseQueryOptionKeys
-        >,
+        options,
       )
         .lean()
         .exec() as number;
 
       const { acknowledged, deletedCount } = await model.deleteMany(
         filter,
-        options as Pick<
-          QueryOptions<Doc>,
-          MongooseBaseQueryOptionKeys
-        >,
+        options,
       )
         .lean()
         .exec();
@@ -358,7 +368,9 @@ async function createTokenService(
     error?: unknown,
   ): Promise<SafeResult<string>> {
     if (retriesLeft <= 0) {
-      return createSafeErrorResult(new RetryLimitExceededError(error));
+      return createSafeErrorResult(
+        new RetryLimitExceededError(error),
+      );
     }
 
     try {

@@ -457,11 +457,13 @@ function verifyJWTSafe(
     }
 }
 
-function signJWTSafe({ payload, secretOrPrivateKey, options }: {
-    payload: string | Buffer | object;
-    secretOrPrivateKey: jwt.Secret | jwt.PrivateKey;
-    options?: SignOptions;
-}) {
+function signJWTSafe(
+    { payload, secretOrPrivateKey, options }: {
+        payload: string | Buffer | object;
+        secretOrPrivateKey: jwt.Secret | jwt.PrivateKey;
+        options?: SignOptions;
+    },
+) {
     try {
         const token = jwt.sign(payload, secretOrPrivateKey, options);
         return createSafeSuccessResult(token);
@@ -486,14 +488,16 @@ function mergeResolvers(
     resolversArray: Array<any>,
 ) {
     return resolversArray.reduce((merged, resolver) => {
+        const { Query: mergedQuery, Mutation: mergedMutation } = merged;
         const { Query: resolverQuery, Mutation: resolverMutation } = resolver;
 
         merged.Query = {
-            ...merged.Query,
+            ...mergedQuery,
             ...resolverQuery,
         };
+
         merged.Mutation = {
-            ...merged.Mutation,
+            ...mergedMutation,
             ...resolverMutation,
         };
 

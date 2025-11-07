@@ -241,66 +241,66 @@ const userSchema = new Schema<UserDocument>(
         },
         username: {
             type: String,
-            required: [true, "Username is required"],
+            required: [true, "Username is required. Received {VALUE}"],
             unique: true,
         },
         password: {
             type: String,
-            required: [true, "Password is required"],
+            required: [true, "Password is required. Received {VALUE}"],
         },
         email: {
             type: String,
-            required: [true, "Email is required"],
+            required: [true, "Email is required. Received {VALUE}"],
             unique: true,
         },
         addressLine: {
             type: String,
-            required: [true, "Address line is required"],
+            required: [true, "Address line is required. Received {VALUE}"],
         },
         city: {
             type: String,
-            required: [true, "City is required"],
+            required: [true, "City is required. Received {VALUE}"],
         },
         country: {
             type: String,
-            required: [true, "Country is required"],
+            required: [true, "Country is required. Received {VALUE}"],
             enum: ["Canada", "United States"],
         },
         postalCodeCanada: {
             type: String,
             default: "A0A 0A0",
-            required: [true, "Postal code is required"],
+            required: [true, "Postal code is required. Received {VALUE}"],
         },
         postalCodeUS: {
             type: String,
-            required: [true, "Postal code is required"],
+            required: [true, "Postal code is required. Received {VALUE}"],
             default: "00000",
         },
         province: {
             type: String,
-            required: [true, "Province is required"],
+            required: [true, "Province is required. Received {VALUE}"],
             default: "Not Applicable",
         },
         state: {
             type: String,
-            required: [true, "State is required"],
+            required: [true, "State is required. Received {VALUE}"],
             default: "Not Applicable",
         },
         department: {
             type: String,
-            required: [true, "Department is required"],
+            required: [true, "Department is required. Received {VALUE}"],
         },
         firstName: {
             type: String,
-            required: [true, "First name is required"],
+            required: [true, "First name is required. Received {VALUE}"],
         },
         jobPosition: {
             type: String,
-            required: [true, "Job position is required"],
+            required: [true, "Job position is required. Received {VALUE}"],
         },
         lastName: {
             type: String,
-            required: [true, "Last name is required"],
+            required: [true, "Last name is required. Received {VALUE}"],
         },
         profilePictureUrl: {
             type: String,
@@ -313,11 +313,14 @@ const userSchema = new Schema<UserDocument>(
         },
         orgId: {
             type: Number,
-            required: [true, "Organization ID is required"],
+            required: [true, "Organization ID is required. Received {VALUE}"],
         },
         parentOrgId: {
             type: Number,
-            required: [true, "Parent organization ID is required"],
+            required: [
+                true,
+                "Parent organization ID is required. Received {VALUE}",
+            ],
         },
         roles: {
             type: [String],

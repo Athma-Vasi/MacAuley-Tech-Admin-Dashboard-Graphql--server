@@ -39,7 +39,7 @@ const errorLogSchema = new Schema(
         },
         original: {
             type: String,
-            required: [true, "Original error is required"],
+            required: [true, "Original error is required. Received {VALUE}"],
         },
         expireAt: {
             type: Date,
@@ -48,30 +48,30 @@ const errorLogSchema = new Schema(
         },
         userId: {
             type: String,
-            required: [true, "User ID is required"],
+            required: [true, "User ID is required. Received {VALUE}"],
             ref: "User",
             index: true,
         },
         username: {
             type: String,
-            required: [true, "Username is required"],
+            required: [true, "Username is required. Received {VALUE}"],
         },
         sessionId: {
             type: String,
-            required: [true, "Session ID is required"],
+            required: [true, "Session ID is required. Received {VALUE}"],
             index: true,
         },
         message: {
             type: String,
-            required: [true, "Message is required"],
+            required: [true, "Message is required. Received {VALUE}"],
         },
         name: {
             type: String,
-            required: [true, "Name is required"],
+            required: [true, "Name is required. Received {VALUE}"],
         },
         stack: {
             type: String,
-            required: [true, "Stack is required"],
+            required: [true, "Stack is required. Received {VALUE}"],
         },
         timestamp: {
             type: String,
