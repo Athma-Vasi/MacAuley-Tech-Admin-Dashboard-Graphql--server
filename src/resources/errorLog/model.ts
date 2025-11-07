@@ -1,18 +1,19 @@
-import { model, Schema, type Types } from "mongoose";
+import { model, Schema, type Types, type ValidatorProps } from "mongoose";
 import { ERROR_LOG_EXPIRY } from "../../constants.ts";
+import { FULL_NAME_REGEX, USERNAME_REGEX } from "../../regex/index.ts";
 
 type ErrorLogSchema = {
     headers?: string;
     ip?: string;
     userAgent?: string;
-    original: string;
+    original?: string;
     expireAt?: Date;
     userId: string;
     username: string;
     sessionId: string;
     message: string;
     name: string;
-    stack: string;
+    stack?: string;
     timestamp: string;
 };
 
@@ -39,7 +40,7 @@ const errorLogSchema = new Schema(
         },
         original: {
             type: String,
-            required: [true, "Original error is required. Received {VALUE}"],
+            required: [false, "Original error is required. Received {VALUE}"],
         },
         expireAt: {
             type: Date,
@@ -55,6 +56,16 @@ const errorLogSchema = new Schema(
         username: {
             type: String,
             required: [true, "Username is required. Received {VALUE}"],
+            validate: {
+                validator: function usernameValidator(v: string) {
+                    return USERNAME_REGEX.test(v);
+                },
+                message: (props: ValidatorProps) =>
+                    `${props.value} is not a valid username. 
+                     Usernames must be 3-48 characters long, can contain alphanumeric characters,
+                     hyphens, underscores, and periods, cannot start with a hyphen, underscore, 
+                     or period, and cannot consist entirely of zeroes.`,
+            },
         },
         sessionId: {
             type: String,
@@ -64,14 +75,30 @@ const errorLogSchema = new Schema(
         message: {
             type: String,
             required: [true, "Message is required. Received {VALUE}"],
+            validate: {
+                validator: function messageValidator(v: string) {
+                    return v.trim().length > 0;
+                },
+                message: (_props: ValidatorProps) =>
+                    `Error message cannot be empty or just whitespace.`,
+            },
         },
         name: {
             type: String,
             required: [true, "Name is required. Received {VALUE}"],
+            validate: {
+                validator: function firstNameValidator(v: string) {
+                    return FULL_NAME_REGEX.test(v);
+                },
+                message: (props: ValidatorProps) =>
+                    `${props.value} is not a valid first name.
+                     First names can only contain letters, spaces, periods, hyphens, and apostrophes.`,
+            },
         },
         stack: {
             type: String,
-            required: [true, "Stack is required. Received {VALUE}"],
+            required: false,
+            default: "No stack trace available.",
         },
         timestamp: {
             type: String,

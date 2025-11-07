@@ -406,7 +406,7 @@ const userSchema = new Schema<UserDocument>(
                 },
                 message: (props) =>
                     `${props.value} is not a valid first name.
-                     First names can only contain letters, spaces, periods, hyphens, and apostrophes.`,
+                        First names can only contain letters, spaces, periods, hyphens, and apostrophes.`,
             },
         },
         jobPosition: {
